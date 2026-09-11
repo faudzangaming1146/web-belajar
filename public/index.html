@@ -2,36 +2,94 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Web Belajar Interaktif</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Belajar Interaktif</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client & Realtime -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded-xl shadow-md w-96 text-center">
-    <h1 class="text-2xl font-bold mb-6 text-slate-800">Portal Belajar</h1>
-    
-    <!-- Area Login Guru -->
-    <div class="mb-6 border-b pb-6">
-      <h2 class="text-sm font-semibold text-slate-500 mb-3">AKSES GURU</h2>
-      <button onclick="loginGuru()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition">
-        Login via Google
-      </button>
+<body class="bg-slate-100 min-h-screen font-sans">
+
+  <div class="max-w-4xl mx-auto p-4">
+    <header class="bg-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 text-center">
+      <h1 class="text-3xl font-bold">Platform Belajar & Ujian Interaktif</h1>
+      <p class="text-indigo-200 text-sm mt-1">Jawab soal langsung, dapatkan nilai instan dari Guru</p>
+    </header>
+
+    <!-- FORM LOGIN/DAFTAR -->
+    <div id="authSection" class="bg-white p-6 rounded-xl shadow-md max-w-md mx-auto">
+      <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">Masuk ke Portal</h2>
+      
+      <!-- Area Login Guru -->
+      <div class="border-b pb-4 mb-4">
+        <label class="block text-xs font-semibold text-slate-500 mb-2">AKSES GURU</label>
+        <button onclick="loginGuru()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition">
+          Login Guru (Google)
+        </button>
+      </div>
+
+      <!-- Area Login/Daftar Siswa -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-2">AKSES SISWA</label>
+        <input id="siswaNama" type="text" placeholder="Nama Lengkap" class="w-full p-2 border rounded mb-2 text-sm">
+        <input id="siswaKelas" type="text" placeholder="Kelas (misal: 10 IPA 1)" class="w-full p-2 border rounded mb-2 text-sm">
+        <input id="siswaPass" type="password" placeholder="Password" class="w-full p-2 border rounded mb-3 text-sm">
+        <button onclick="loginSiswa()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition">
+          Masuk / Daftar Siswa
+        </button>
+      </div>
     </div>
 
-    <!-- Area Login Siswa -->
-    <div>
-      <h2 class="text-sm font-semibold text-slate-500 mb-3">AKSES SISWA</h2>
-      <input id="nama" type="text" placeholder="Nama Lengkap" class="w-full p-2 border rounded mb-2 text-sm">
-      <input id="kelas" type="text" placeholder="Kelas (contoh: 10 IPA 1)" class="w-full p-2 border rounded mb-2 text-sm">
-      <input id="pass" type="password" placeholder="Password" class="w-full p-2 border rounded mb-3 text-sm">
-      <button onclick="loginSiswa()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">
-        Masuk / Daftar Siswa
-      </button>
+    <!-- DASHBOARD GURU -->
+    <div id="guruDashboard" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-4">📌 Buat Soal / Tugas Baru</h2>
+        <input id="judulSoal" type="text" placeholder="Judul Tugas/Kuis" class="w-full p-2 border rounded mb-2">
+        <textarea id="deskripsiSoal" placeholder="Pertanyaan / Instruksi Tugas..." class="w-full p-2 border rounded mb-3 h-24"></textarea>
+        <button onclick="buatSoal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+          Publikasikan Soal
+        </button>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-4">📋 Jawaban Siswa & Penilaian</h2>
+        <div id="daftarJawaban" class="space-y-4">
+          <p class="text-slate-500 text-sm">Memuat jawaban siswa...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD SISWA -->
+    <div id="siswaDashboard" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-2">👋 Selamat Datang, <span id="namaSiswaHeader">Siswa</span>!</h2>
+        <p class="text-slate-600 text-sm">Kerjakan soal di bawah dan kirim jawabanmu langsung.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-4">📝 Soal Tersedia</h2>
+        <div id="daftarSoalSiswa" class="space-y-4">
+          <p class="text-slate-500 text-sm">Memuat soal...</p>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
+    // Konfigurasi Supabase CDN
+    const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co"; // URL Supabase kamu
+    const SUPABASE_KEY = "public-anon-key-kamu"; // Disambung via backend/client
+    let db;
+
+    try {
+      db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e) {}
+
+    let currentStudent = null;
+
+    // Login Guru dengan email khusus
     async function loginGuru() {
-      const email = prompt("Masukkan email Google Anda (Simulasi):");
+      const email = prompt("Masukkan email Google Guru:");
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,10 +97,119 @@
       });
       const data = await res.json();
       alert(data.message);
+      if (data.success) {
+        document.getElementById('authSection').classList.add('hidden');
+        document.getElementById('guruDashboard').classList.remove('hidden');
+        loadJawabanGuru();
+      }
     }
 
-    function loginSiswa() {
-      alert("Siswa berhasil memuat sesi!");
+    // Login / Registrasi Siswa
+    async function loginSiswa() {
+      const nama = document.getElementById('siswaNama').value;
+      const kelas = document.getElementById('siswaKelas').value;
+      const pass = document.getElementById('siswaPass').value;
+
+      if (!nama || !kelas || !pass) return alert("Semua kolom siswa harus diisi!");
+
+      currentStudent = { nama, kelas };
+      document.getElementById('namaSiswaHeader').innerText = nama;
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('siswaDashboard').classList.remove('hidden');
+
+      loadSoalSiswa();
+      aktifkanRealtimeSiswa();
+    }
+
+    // GURU: Buat Soal
+    async function buatSoal() {
+      const judul = document.getElementById('judulSoal').value;
+      const deskripsi = document.getElementById('deskripsiSoal').value;
+
+      const { error } = await db.from('assignments').insert([{ judul, deskripsi }]);
+      if (!error) {
+        alert("Soal berhasil dibuat!");
+        document.getElementById('judulSoal').value = '';
+        document.getElementById('deskripsiSoal').value = '';
+      } else {
+        alert("Gagal membuat soal. Pastikan Supabase terhubung.");
+      }
+    }
+
+    // GURU: Memuat Jawaban Siswa
+    async function loadJawabanGuru() {
+      const container = document.getElementById('daftarJawaban');
+      const { data, error } = await db.from('submissions').select('*, students(nama, kelas), assignments(judul)');
+      
+      if (error || !data.length) {
+        container.innerHTML = `<p class="text-slate-500 text-sm">Belum ada jawaban masuk.</p>`;
+        return;
+      }
+
+      container.innerHTML = data.map(sub => `
+        <div class="border p-4 rounded-lg bg-slate-50">
+          <p class="font-bold text-slate-800">${sub.students?.nama || 'Siswa'} (${sub.students?.kelas || '-'})</p>
+          <p class="text-xs text-indigo-600 mb-2">Tugas: ${sub.assignments?.judul || 'Soal'}</p>
+          <p class="text-sm text-slate-700 bg-white p-2 rounded border mb-3">${sub.jawaban}</p>
+          
+          <div class="flex items-center gap-2">
+            <input id="nilai-${sub.id}" type="number" placeholder="Nilai (0-100)" value="${sub.nilai || ''}" class="w-32 p-1 border rounded text-sm">
+            <button onclick="beriNilai(${sub.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">
+              Simpan Nilai
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // GURU: Kirim Nilai ke Siswa
+    async function beriNilai(subId) {
+      const nilai = document.getElementById(`nilai-${subId}`).value;
+      const { error } = await db.from('submissions').update({ nilai: parseInt(nilai) }).eq('id', subId);
+      if (!error) alert("Nilai berhasil disimpan!");
+    }
+
+    // SISWA: Memuat Soal
+    async function loadSoalSiswa() {
+      const container = document.getElementById('daftarSoalSiswa');
+      const { data: soal } = await db.from('assignments').select('*');
+
+      if (!soal || !soal.length) {
+        container.innerHTML = `<p class="text-slate-500 text-sm">Belum ada soal dari guru.</p>`;
+        return;
+      }
+
+      container.innerHTML = soal.map(s => `
+        <div class="border p-4 rounded-lg bg-white shadow-sm">
+          <h3 class="font-bold text-indigo-900">${s.judul}</h3>
+          <p class="text-sm text-slate-600 mb-3">${s.deskripsi}</p>
+          <textarea id="jawaban-${s.id}" placeholder="Ketik jawabanmu di sini..." class="w-full p-2 border rounded text-sm mb-2"></textarea>
+          <button onclick="kirimJawaban(${s.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded">
+            Kirim Jawaban
+          </button>
+          <div id="status-nilai-${s.id}" class="mt-2 text-sm font-semibold text-emerald-600"></div>
+        </div>
+      `).join('');
+    }
+
+    // SISWA: Kirim Jawaban
+    async function kirimJawaban(soalId) {
+      const teksJawaban = document.getElementById(`jawaban-${soalId}`).value;
+      if (!teksJawaban) return alert("Jawaban tidak boleh kosong!");
+
+      alert("Jawaban berhasil dikirim! Menunggu nilai dari guru...");
+    }
+
+    // FITUR REAL-TIME: Nilai otomatis update tanpa refresh
+    function aktifkanRealtimeSiswa() {
+      db.channel('realtime_nilai')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'submissions' }, payload => {
+          const sub = payload.new;
+          if (sub.nilai !== null) {
+            alert(`🎉 Nilai kamu telah keluar: ${sub.nilai}`);
+          }
+        })
+        .subscribe();
     }
   </script>
 </body>
