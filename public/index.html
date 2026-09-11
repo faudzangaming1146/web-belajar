@@ -83,7 +83,7 @@
         </div>
       </div>
 
-      <button onclick="handleMainNext()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide mt-4">
+      <button id="btnMainNext" onclick="handleMainNext()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide mt-4">
         BERIKUTNYA
       </button>
 
@@ -148,18 +148,18 @@
       </div>
 
       <div class="pt-4">
-        <button onclick="submitRegister()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
+        <button id="btnSubmitReg" onclick="submitRegister()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
           BERIKUTNYA
         </button>
         <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Batal / Kembali</button>
       </div>
     </div>
 
-    <!-- DASHBOARD GURU LENGKAP WITH REKAP NILAI & ALFABETIS -->
+    <!-- DASHBOARD GURU -->
     <div id="guruDashboard" class="hidden space-y-6">
       <div class="flex justify-between items-center border-b pb-3">
         <h2 class="font-black text-xl">DASHBOARD GURU</h2>
-        <button onclick="location.reload()" class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded font-bold">Keluar</button>
+        <button onclick="logout()" class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded font-bold">Keluar / Logout</button>
       </div>
 
       <!-- NAVIGASI TAB GURU -->
@@ -195,10 +195,10 @@
         </div>
       </div>
 
-      <!-- TAB 2: REKAP NILAI MURID (ALFABETIS & PER KELAS) -->
+      <!-- TAB 2: REKAP NILAI MURID -->
       <div id="guruTabNilai" class="hidden space-y-4">
         <div class="flex items-center justify-between bg-slate-100 p-3 rounded-xl">
-          <label class="font-bold text-sm">PILIH KELAS FOR REKAP:</label>
+          <label class="font-bold text-sm">PILIH KELAS REKAP:</label>
           <select id="filterKelasGuru" onchange="loadRekapNilai()" class="p-2 border-2 border-black rounded-lg font-bold text-sm bg-white">
             <option value="10-1">Kelas 10-1</option>
             <option value="10-2">Kelas 10-2</option>
@@ -217,11 +217,9 @@
             <thead>
               <tr id="tableHeaderRekap" class="bg-slate-200 border-b">
                 <th class="p-2 font-black border-r w-48">NAMA MURID (ALFABETIS)</th>
-                <!-- Kolom Tugas 1, Tugas 2, dst. di-generate dinamis -->
               </tr>
             </thead>
             <tbody id="tableBodyRekap">
-              <!-- Data Murid & Nilai Berjejer ke kanan -->
             </tbody>
           </table>
         </div>
@@ -235,7 +233,7 @@
           <h2 class="font-black text-xl">PORTAL MURID</h2>
           <p class="text-xs text-slate-500"><span id="lblNamaSiswa"></span> (<span id="lblKelasSiswa"></span>)</p>
         </div>
-        <button onclick="location.reload()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">Keluar</button>
+        <button onclick="logout()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">Keluar / Logout</button>
       </div>
 
       <div>
@@ -247,7 +245,7 @@
   </div>
 
   <script>
-    // PROTEKSI SHORTCUT
+    // PROTEKSI KEYBOARD
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', function(e) {
       if (e.key === 'F12' || e.keyCode === 123 || (e.ctrlKey && (e.key === 'u' || e.key === 'U'))) {
@@ -264,7 +262,67 @@
 
     const KELAS_IZIN = ["10-1", "10-2", "10-3", "10-4", "10-5", "10-6", "10-7", "10-8", "10-9"];
     let selectedChoice = '';
-    let currentStudent = { nama: '', kelas: '' };
+    let currentStudent = null;
+    let isGuruLoggedIn = false;
+
+    // INITALIZE AUTO-LOGIN & REALTIME LISTENERS
+    window.addEventListener('DOMContentLoaded', () => {
+      checkSavedSession();
+      setupRealtimeListeners();
+    });
+
+    // 1. CEK SESI LOGIN DI BROWSER LOCALSTORAGE
+    function checkSavedSession() {
+      const savedGuru = localStorage.getItem('guru_session');
+      const savedStudent = localStorage.getItem('student_session');
+
+      if (savedGuru) {
+        isGuruLoggedIn = true;
+        showScreen('guruDashboard');
+        loadSoalGuru();
+        loadJawabanGuru();
+      } else if (savedStudent) {
+        currentStudent = JSON.parse(savedStudent);
+        document.getElementById('lblNamaSiswa').innerText = currentStudent.nama;
+        document.getElementById('lblKelasSiswa').innerText = currentStudent.kelas;
+        showScreen('siswaDashboard');
+        loadSoalSiswa();
+      } else {
+        showScreen('screenMain');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('guru_session');
+      localStorage.removeItem('student_session');
+      currentStudent = null;
+      isGuruLoggedIn = false;
+      location.reload();
+    }
+
+    // 2. SETUP REALTIME UPDATE DARI SUPABASE
+    function setupRealtimeListeners() {
+      if(!db) return;
+      
+      // Dengarkan perubahan tabel assignments (Soal baru/hapus)
+      db.channel('public:assignments')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () => {
+          if (isGuruLoggedIn) loadSoalGuru();
+          if (currentStudent) loadSoalSiswa();
+        })
+        .subscribe();
+
+      // Dengarkan perubahan tabel submissions (Jawaban/Nilai baru)
+      db.channel('public:submissions')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
+          if (isGuruLoggedIn) {
+            loadJawabanGuru();
+            loadRekapNilai();
+          }
+          if (currentStudent) loadSoalSiswa();
+        })
+        .subscribe();
+    }
 
     function showScreen(id) {
       ['screenMain', 'screenGuruLogin', 'screenRegister', 'guruDashboard', 'siswaDashboard'].forEach(s => {
@@ -292,6 +350,7 @@
     async function handleMainNext() {
       const username = document.getElementById('mainUsername').value.trim();
       const password = document.getElementById('mainPassword').value.trim();
+      const btn = document.getElementById('btnMainNext');
 
       if (selectedChoice === 'regSiswa') {
         showScreen('screenRegister');
@@ -302,16 +361,25 @@
           return alert("Isi Login Murid atau pilih opsi di bawah!");
         }
 
+        btn.innerText = "Memproses...";
+        btn.disabled = true;
+
         const { data, error } = await db.from('students')
           .select('*')
           .eq('nama', username)
           .eq('password', password)
           .single();
 
+        btn.innerText = "BERIKUTNYA";
+        btn.disabled = false;
+
         if (error || !data) {
           alert("Login Murid gagal! Nama atau password salah.");
         } else {
           currentStudent = { nama: data.nama, kelas: data.kelas };
+          // Simpan Sesi Login
+          localStorage.setItem('student_session', JSON.stringify(currentStudent));
+
           document.getElementById('lblNamaSiswa').innerText = data.nama;
           document.getElementById('lblKelasSiswa').innerText = data.kelas;
           showScreen('siswaDashboard');
@@ -324,15 +392,21 @@
       const nama = document.getElementById('regNama').value.trim();
       const kelas = document.getElementById('regKelas').value;
       const password = document.getElementById('regPassword').value.trim();
+      const btn = document.getElementById('btnSubmitReg');
 
       if (!nama || !kelas || !password) return alert("Semua kolom registrasi wajib diisi!");
 
-      // VALIDASI KELAS (HANYA 10-1 s/d 10-9)
       if (!KELAS_IZIN.includes(kelas)) {
         return alert("❌ Pendaftaran Gagal! Hanya kelas 10-1 sampai 10-9 yang diizinkan.");
       }
 
+      btn.innerText = "Mendaftarkan...";
+      btn.disabled = true;
+
       const { error } = await db.from('students').insert([{ nama, kelas, password }]);
+
+      btn.innerText = "BERIKUTNYA";
+      btn.disabled = false;
 
       if (!error) {
         alert("🎉 Akun Murid Berhasil Dibuat! Silakan Login di halaman utama.");
@@ -348,6 +422,9 @@
 
       if (!nama) return alert("Masukkan Nama Akun Guru!");
       if (inputSandi !== "SM4ANTEN") return alert("❌ Sandi Otorisasi Guru Salah!");
+
+      isGuruLoggedIn = true;
+      localStorage.setItem('guru_session', JSON.stringify({ nama }));
 
       showScreen('guruDashboard');
       loadSoalGuru();
@@ -369,18 +446,20 @@
       }
     }
 
-    // OPERASI DOKUMEN & SOAL
+    // OPERASI SOAL & JAWABAN
     async function buatSoal() {
-      const judul = document.getElementById('judulSoal').value;
-      const deskripsi = document.getElementById('deskripsiSoal').value;
+      const judul = document.getElementById('judulSoal').value.trim();
+      const deskripsi = document.getElementById('deskripsiSoal').value.trim();
       const fileInput = document.getElementById('fileInputSoal');
       const btn = document.getElementById('btnPublikasi');
 
       if (!judul || !deskripsi) return alert("Isi judul dan deskripsi!");
 
+      btn.innerText = "Mengirim...";
+      btn.disabled = true;
+
       let fileUrl = null;
       if (fileInput.files.length > 0) {
-        btn.innerText = "Uploading...";
         const file = fileInput.files[0];
         const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
         const { error: upErr } = await db.storage.from('lampiran').upload(fileName, file);
@@ -390,10 +469,15 @@
       }
 
       await db.from('assignments').insert([{ judul, deskripsi, file_url: fileUrl }]);
+
       btn.innerText = "Publikasikan Soal";
+      btn.disabled = false;
+
       alert("Soal dipublikasikan!");
       document.getElementById('judulSoal').value = '';
       document.getElementById('deskripsiSoal').value = '';
+      document.getElementById('fileInputSoal').value = '';
+      
       loadSoalGuru();
     }
 
@@ -448,25 +532,19 @@
       const val = document.getElementById(`inputNilai-${subId}`).value;
       await db.from('submissions').update({ nilai: val }).eq('id', subId);
       alert("Nilai disimpan!");
+      loadRekapNilai();
     }
 
-    // LOGIKA REKAP NILAI & PENGURUTAN ALFABETIS
     async function loadRekapNilai() {
       const kelasSelected = document.getElementById('filterKelasGuru').value;
       
-      // 1. Ambil Semua Soal
       const { data: assignments } = await db.from('assignments').select('*').order('created_at', { ascending: true });
-      
-      // 2. Ambil Murid berdasarkan kelas
       const { data: students } = await db.from('students').select('*').eq('kelas', kelasSelected);
 
-      // URUTKAN MURID SECARA ALFABETIS (misal: Aca sebelum Ahmad)
       const sortedStudents = (students || []).sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
 
-      // 3. Ambil Semua Jawaban Murid di Kelas Ini
       const { data: submissions } = await db.from('submissions').select('*').eq('student_class', kelasSelected);
 
-      // Render Header Tabel (Nama + Judul Tugas Berjejer ke Kanan)
       const headerEl = document.getElementById('tableHeaderRekap');
       let headerHTML = `<th class="p-2 font-black border-r min-w-[160px]">NAMA MURID</th>`;
       (assignments || []).forEach((a, index) => {
@@ -474,7 +552,6 @@
       });
       headerEl.innerHTML = headerHTML;
 
-      // Render Baris Murid
       const bodyEl = document.getElementById('tableBodyRekap');
       if (sortedStudents.length === 0) {
         bodyEl.innerHTML = `<tr><td colspan="${(assignments?.length || 0) + 1}" class="p-4 text-center text-slate-400">Belum ada murid terdaftar di kelas ${kelasSelected}</td></tr>`;
@@ -487,14 +564,11 @@
         bodyHTML += `<td class="p-2 font-bold border-r text-slate-800">${st.nama}</td>`;
 
         (assignments || []).forEach(a => {
-          // Cari jawaban murid untuk tugas ini
           const sub = (submissions || []).find(s => s.assignment_id === a.id && s.student_name === st.nama);
           
           if (!sub) {
-            // Kolom Kosong jika belum membuat tugas
             bodyHTML += `<td class="p-2 border-r text-center font-bold text-slate-300">-</td>`;
           } else {
-            // Tampilkan Nilai jika sudah dinilai, atau status 'Terkirim' jika belum dinilai
             const displayNilai = sub.nilai ? `<span class="text-green-700 font-extrabold">${sub.nilai}</span>` : `<span class="text-amber-600 font-medium">Belum Dinilai</span>`;
             bodyHTML += `<td class="p-2 border-r text-center">${displayNilai}</td>`;
           }
@@ -508,29 +582,63 @@
 
     async function loadSoalSiswa() {
       const container = document.getElementById('daftarSoalSiswa');
-      const { data } = await db.from('assignments').select('*').order('created_at', { ascending: false });
-      container.innerHTML = (data || []).map(s => `
-        <div class="border p-3 rounded bg-white shadow-sm">
-          <h4 class="font-bold text-indigo-900">${s.judul}</h4>
-          <p class="text-sm text-slate-700 my-1">${s.deskripsi}</p>
-          ${renderMedia(s.file_url)}
-          <textarea id="jwb-${s.id}" placeholder="Ketik jawaban..." class="w-full p-2 border rounded text-sm my-2 h-16"></textarea>
-          <button onclick="kirimJawaban(${s.id})" class="btn-lime text-xs px-4 py-2 rounded">Kirim Jawaban</button>
-        </div>
-      `).join('');
+      const { data: assignments } = await db.from('assignments').select('*').order('created_at', { ascending: false });
+      const { data: mySubmissions } = await db.from('submissions').select('*').eq('student_name', currentStudent.nama);
+
+      container.innerHTML = (assignments || []).map(s => {
+        const mySub = (mySubmissions || []).find(sub => sub.assignment_id === s.id);
+        
+        let statusBox = '';
+        if (mySub) {
+          statusBox = `
+            <div class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 font-semibold">
+              ✅ Sudah Dikirim! <br>
+              Jawaban Kamu: "${mySub.jawaban}" <br>
+              Nilai: <strong class="text-sm">${mySub.nilai || 'Belum Dinilai'}</strong>
+            </div>
+          `;
+        } else {
+          statusBox = `
+            <textarea id="jwb-${s.id}" placeholder="Ketik jawaban..." class="w-full p-2 border rounded text-sm my-2 h-16"></textarea>
+            <button id="btnKirim-${s.id}" onclick="kirimJawaban(${s.id})" class="btn-lime text-xs px-4 py-2 rounded">Kirim Jawaban</button>
+          `;
+        }
+
+        return `
+          <div class="border p-3 rounded bg-white shadow-sm">
+            <h4 class="font-bold text-indigo-900">${s.judul}</h4>
+            <p class="text-sm text-slate-700 my-1">${s.deskripsi}</p>
+            ${renderMedia(s.file_url)}
+            ${statusBox}
+          </div>
+        `;
+      }).join('');
     }
 
     async function kirimJawaban(id) {
-      const txt = document.getElementById(`jwb-${id}`).value;
+      const txt = document.getElementById(`jwb-${id}`).value.trim();
+      const btn = document.getElementById(`btnKirim-${id}`);
+
       if (!txt) return alert("Jawaban kosong!");
-      await db.from('submissions').insert([{
+
+      btn.innerText = "Mengirim...";
+      btn.disabled = true;
+
+      const { error } = await db.from('submissions').insert([{
         assignment_id: id,
         jawaban: txt,
         student_name: currentStudent.nama,
         student_class: currentStudent.kelas
       }]);
-      alert("Jawaban terkirim!");
-      document.getElementById(`jwb-${id}`).value = '';
+
+      if (!error) {
+        alert("🎉 Jawaban berhasil terkirim!");
+        loadSoalSiswa();
+      } else {
+        alert("Gagal mengirim jawaban: " + error.message);
+        btn.innerText = "Kirim Jawaban";
+        btn.disabled = false;
+      }
     }
   </script>
 </body>
