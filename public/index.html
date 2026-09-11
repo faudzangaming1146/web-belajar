@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Belajar & Matematika Interaktif</title>
+  <title>Aplikasi Belajar & Ujian Interaktif</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Library Render Matematika (KaTeX) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
     onload="renderMathInElement(document.body);"></script>
@@ -19,7 +18,7 @@
   <div class="max-w-4xl mx-auto p-4">
     <header class="bg-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 text-center">
       <h1 class="text-3xl font-bold">Platform Belajar & Ujian Interaktif</h1>
-      <p class="text-indigo-200 text-sm mt-1">Mendukung Format Matematika, Lampiran File & Penilaian Real-Time</p>
+      <p class="text-indigo-200 text-sm mt-1">Dukungan Lampiran File/Media, Matematika & Penilaian Real-Time</p>
     </header>
 
     <!-- FORM LOGIN -->
@@ -47,18 +46,21 @@
     <div id="guruDashboard" class="hidden space-y-6">
       <div class="bg-white p-6 rounded-xl shadow-md">
         <h2 class="text-xl font-bold text-slate-800 mb-4">📌 Buat Soal / Tugas Baru</h2>
-        <input id="judulSoal" type="text" placeholder="Judul Tugas/Kuis Matematika" class="w-full p-2 border rounded mb-2">
-        <textarea id="deskripsiSoal" placeholder="Pertanyaan... Gunakan $ tanda dollar $ untuk rumus Matematika (contoh: $x^2 + y^2 = r^2$)" class="w-full p-2 border rounded mb-2 h-24"></textarea>
+        <input id="judulSoal" type="text" placeholder="Judul Tugas/Kuis" class="w-full p-2 border rounded mb-2">
+        <textarea id="deskripsiSoal" placeholder="Pertanyaan... Gunakan $ tanda dollar $ untuk rumus Matematika (contoh: $x^2 + y^2 = r^2$)" class="w-full p-2 border rounded mb-3 h-24"></textarea>
         
-        <!-- Input Lampiran Gambar / File URL -->
-        <input id="fileUrlSoal" type="text" placeholder="URL Gambar / File Pendukung (Opsional)" class="w-full p-2 border rounded mb-3 text-sm">
-        
-        <button onclick="buatSoal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+        <!-- Tombol Upload File/Gambar/Video -->
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">📁 Tambahkan Lampiran (Gambar, Video, PDF, MP3, dll):</label>
+          <input id="fileInputSoal" type="file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
+
+        <button id="btnPublikasi" onclick="buatSoal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
           Publikasikan Soal
         </button>
       </div>
 
-      <!-- DAFTAR SOAL GURU (Bisa Dihapus) -->
+      <!-- DAFTAR SOAL GURU -->
       <div class="bg-white p-6 rounded-xl shadow-md">
         <h2 class="text-xl font-bold text-slate-800 mb-4">📚 Kelola Soal Dipublikasi</h2>
         <div id="daftarSoalGuru" class="space-y-4">
@@ -93,7 +95,7 @@
 
   <script>
     const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co"; 
-    const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li";
+    const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li"; // Masukkan Anon Key milikmu
     let db;
 
     try {
@@ -142,27 +144,76 @@
       aktifkanRealtimeSiswa();
     }
 
-    // GURU: Buat Soal + File URL
+    // GURU: Buat Soal + Direct File Upload ke Storage
     async function buatSoal() {
       const judul = document.getElementById('judulSoal').value;
       const deskripsi = document.getElementById('deskripsiSoal').value;
-      const file_url = document.getElementById('fileUrlSoal').value;
+      const fileInput = document.getElementById('fileInputSoal');
+      const btnPublikasi = document.getElementById('btnPublikasi');
 
       if (!judul || !deskripsi) return alert("Judul dan deskripsi wajib diisi!");
 
-      const { error } = await db.from('assignments').insert([{ judul, deskripsi, file_url }]);
+      let fileUrl = null;
+
+      // Cek apakah ada file yang dipilih
+      if (fileInput.files.length > 0) {
+        btnPublikasi.innerText = "Mengunggah File...";
+        btnPublikasi.disabled = true;
+
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+
+        // Upload ke Supabase Storage (Bucket 'lampiran')
+        const { data: uploadData, error: uploadError } = await db.storage
+          .from('lampiran')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          btnPublikasi.innerText = "Publikasikan Soal";
+          btnPublikasi.disabled = false;
+          return alert("Gagal mengunggah file: " + uploadError.message);
+        }
+
+        // Ambil Public URL
+        const { data: publicUrlData } = db.storage.from('lampiran').getPublicUrl(fileName);
+        fileUrl = publicUrlData.publicUrl;
+      }
+
+      // Simpan soal ke database
+      const { error } = await db.from('assignments').insert([{ judul, deskripsi, file_url: fileUrl }]);
+
+      btnPublikasi.innerText = "Publikasikan Soal";
+      btnPublikasi.disabled = false;
+
       if (!error) {
         alert("Soal berhasil dibuat!");
         document.getElementById('judulSoal').value = '';
         document.getElementById('deskripsiSoal').value = '';
-        document.getElementById('fileUrlSoal').value = '';
+        fileInput.value = '';
         loadSoalGuru();
       } else {
         alert("Gagal membuat soal: " + error.message);
       }
     }
 
-    // GURU: Load & Hapus Soal
+    // Fungsi Render Tampilan Media (Gambar, Video, atau Link Dokumen)
+    function renderMedia(fileUrl) {
+      if (!fileUrl) return '';
+      const ext = fileUrl.split('.').pop().toLowerCase();
+      
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        return `<div class="mt-2"><img src="${fileUrl}" class="max-h-60 rounded border shadow-sm"></div>`;
+      } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+        return `<div class="mt-2"><video controls class="max-h-60 rounded border"><source src="${fileUrl}"></video></div>`;
+      } else if (['mp3', 'wav'].includes(ext)) {
+        return `<div class="mt-2"><audio controls class="w-full"><source src="${fileUrl}"></audio></div>`;
+      } else {
+        return `<div class="mt-2"><a href="${fileUrl}" target="_blank" class="text-xs text-blue-600 underline font-semibold">📎 Download / Buka Lampiran File</a></div>`;
+      }
+    }
+
+    // GURU: Load Soal
     async function loadSoalGuru() {
       const container = document.getElementById('daftarSoalGuru');
       const { data: soal } = await db.from('assignments').select('*').order('created_at', { ascending: false });
@@ -174,12 +225,12 @@
 
       container.innerHTML = soal.map(s => `
         <div class="border p-4 rounded-lg bg-slate-50 flex justify-between items-start">
-          <div>
+          <div class="w-full pr-4">
             <h3 class="font-bold text-slate-800">${s.judul}</h3>
             <p class="text-sm text-slate-600 mt-1">${s.deskripsi}</p>
-            ${s.file_url ? `<a href="${s.file_url}" target="_blank" class="text-xs text-blue-600 underline mt-2 block">📎 Lihat Lampiran/Gambar</a>` : ''}
+            ${renderMedia(s.file_url)}
           </div>
-          <button onclick="hapusSoal(${s.id})" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded">
+          <button onclick="hapusSoal(${s.id})" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded shrink-0">
             Hapus Soal
           </button>
         </div>
@@ -193,7 +244,8 @@
       if (!error) {
         alert("Soal berhasil dihapus!");
         loadSoalGuru();
-        loadSoalSiswa();
+      } else {
+        alert("Gagal menghapus soal: " + error.message);
       }
     }
 
@@ -232,7 +284,7 @@
       if (!error) alert("Nilai berhasil disimpan!");
     }
 
-    // SISWA: Load Soal + Kirim Jawaban
+    // SISWA: Load Soal
     async function loadSoalSiswa() {
       const container = document.getElementById('daftarSoalSiswa');
       const { data: soal } = await db.from('assignments').select('*').order('created_at', { ascending: false });
@@ -246,9 +298,9 @@
         <div class="border p-4 rounded-lg bg-white shadow-sm">
           <h3 class="font-bold text-indigo-900">${s.judul}</h3>
           <div class="text-sm text-slate-600 my-2">${s.deskripsi}</div>
-          ${s.file_url ? `<div class="my-2"><img src="${s.file_url}" class="max-h-48 rounded border" onerror="this.style.display='none'"><a href="${s.file_url}" target="_blank" class="text-xs text-blue-600 underline">📎 Buka File Lampiran</a></div>` : ''}
+          ${renderMedia(s.file_url)}
           
-          <textarea id="jawaban-${s.id}" placeholder="Ketik jawabanmu... (Bisa ketik rumus matematika dengan $ ... $)" class="w-full p-2 border rounded text-sm mb-2 h-24"></textarea>
+          <textarea id="jawaban-${s.id}" placeholder="Ketik jawabanmu..." class="w-full p-2 border rounded text-sm my-2 h-24"></textarea>
           <button onclick="kirimJawaban(${s.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded">
             Kirim Jawaban
           </button>
