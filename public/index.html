@@ -3,347 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Belajar & Ujian Interaktif</title>
+  <title>Platform Belajar & Interaktif</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- Library Render Matematika (KaTeX) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
-    onload="renderMathInElement(document.body);"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+
+  <style>
+    body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; }
+    .canva-card {
+      border: 8px solid #E6F08B;
+      border-radius: 20px;
+      background: white;
+      max-width: 480px;
+      width: 100%;
+    }
+    .btn-lime {
+      background-color: #E6F08B;
+      color: #000;
+      font-weight: 800;
+    }
+    .btn-lime:hover {
+      background-color: #dbe874;
+    }
+    .option-box {
+      background-color: #E0E0E0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .option-box:hover {
+      background-color: #D4D4D4;
+    }
+    .option-box.selected {
+      border: 3px solid #000;
+      background-color: #D4D4D4;
+    }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-  <div class="max-w-4xl mx-auto p-4">
-    <header class="bg-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 text-center">
-      <h1 class="text-3xl font-bold">Platform Belajar & Ujian Interaktif</h1>
-      <p class="text-indigo-200 text-sm mt-1">Dukungan Lampiran File/Media, Matematika & Penilaian Real-Time</p>
-    </header>
+  <div class="canva-card p-6 shadow-xl relative">
 
-    <!-- FORM LOGIN -->
-    <div id="authSection" class="bg-white p-6 rounded-xl shadow-md max-w-md mx-auto">
-      <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">Masuk ke Portal</h2>
+    <!-- 1. HALAMAN UTAMA (Gambar 1) -->
+    <div id="screenMain" class="space-y-4">
+      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-6">Platform Belajar & Interaktif</h1>
       
-      <div class="border-b pb-4 mb-4">
-        <label class="block text-xs font-semibold text-slate-500 mb-2">AKSES GURU</label>
-        <button onclick="loginGuru()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition">
-          Login Guru
-        </button>
+      <div>
+        <label class="block font-black text-sm uppercase mb-1">LOGIN</label>
+        <input id="mainUsername" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-500 mb-2">AKSES SISWA</label>
-        <input id="siswaNama" type="text" placeholder="Nama Lengkap" class="w-full p-2 border rounded mb-2 text-sm">
-        <input id="siswaKelas" type="text" placeholder="Kelas (misal: 10 IPA 1)" class="w-full p-2 border rounded mb-2 text-sm">
-        <button onclick="loginSiswa()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition">
-          Masuk Portal Siswa
+        <label class="block font-black text-sm uppercase mb-1">PASSWORD</label>
+        <input id="mainPassword" type="password" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div class="pt-2">
+        <label class="block font-black text-sm mb-2">pilihan</label>
+
+        <!-- Pilihan 1: Buat Akun Baru -->
+        <div id="optRegister" onclick="selectOption('register')" class="option-box p-6 mb-3 flex items-center">
+          <span class="font-bold text-slate-800 text-lg">buat akun &nbsp;&nbsp; buat akun baru</span>
+        </div>
+
+        <!-- Pilihan 2: Login Sebagai Guru -->
+        <div id="optGuru" onclick="selectOption('guru')" class="option-box p-6 flex items-center">
+          <span class="font-bold text-slate-800 text-lg uppercase">LOGIN SEBAGAI GURU</span>
+        </div>
+      </div>
+
+      <button onclick="handleMainNext()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide mt-4">
+        BERIKUTNYA
+      </button>
+
+      <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
+        Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
+      </p>
+    </div>
+
+    <!-- 2. HALAMAN LOGIN GURU (Gambar 2) -->
+    <div id="screenGuruLogin" class="hidden space-y-6">
+      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-8 uppercase">LOGIN GURU</h1>
+
+      <div>
+        <label class="block font-black text-sm uppercase mb-2">NAMA AKUN</label>
+        <input id="guruNamaInput" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div class="pt-20">
+        <button onclick="submitLoginGuru()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
+          BERIKUTNYA
         </button>
+        <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Kembali</button>
+        <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
+          Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
+        </p>
+      </div>
+    </div>
+
+    <!-- 3. HALAMAN BUAT AKUN MURID BARU (Gambar 4) -->
+    <div id="screenRegister" class="hidden space-y-4">
+      <h1 class="text-3xl font-black tracking-tight text-slate-900 leading-tight uppercase mb-4">
+        BUAT AKUN MURID BARU
+      </h1>
+
+      <div>
+        <label class="block font-black text-sm uppercase mb-1">NAMA MURID</label>
+        <input id="regNama" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div>
+        <label class="block font-black text-sm uppercase mb-1">KELAS</label>
+        <input id="regKelas" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div>
+        <label class="block font-black text-sm uppercase mb-1">BUAT PASSWORD</label>
+        <input id="regPassword" type="password" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div class="pt-6">
+        <button onclick="submitRegister()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
+          BERIKUTNYA
+        </button>
+        <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Batal / Kembali</button>
+        <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
+          Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
+        </p>
       </div>
     </div>
 
     <!-- DASHBOARD GURU -->
     <div id="guruDashboard" class="hidden space-y-6">
-      <div class="bg-white p-6 rounded-xl shadow-md">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">📌 Buat Soal / Tugas Baru</h2>
-        <input id="judulSoal" type="text" placeholder="Judul Tugas/Kuis" class="w-full p-2 border rounded mb-2">
-        <textarea id="deskripsiSoal" placeholder="Pertanyaan... Gunakan $ tanda dollar $ untuk rumus Matematika (contoh: $x^2 + y^2 = r^2$)" class="w-full p-2 border rounded mb-3 h-24"></textarea>
-        
-        <!-- Tombol Upload File/Gambar/Video -->
-        <div class="mb-4">
-          <label class="block text-xs font-semibold text-slate-600 mb-1">📁 Tambahkan Lampiran (Gambar, Video, PDF, MP3, dll):</label>
-          <input id="fileInputSoal" type="file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-        </div>
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="font-black text-xl">DASHBOARD GURU</h2>
+        <button onclick="location.reload()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">Keluar</button>
+      </div>
 
-        <button id="btnPublikasi" onclick="buatSoal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+      <div class="space-y-3">
+        <h3 class="font-bold">📌 Buat Soal Baru</h3>
+        <input id="judulSoal" type="text" placeholder="Judul Tugas" class="w-full p-2 border rounded">
+        <textarea id="deskripsiSoal" placeholder="Pertanyaan..." class="w-full p-2 border rounded h-20"></textarea>
+        <input id="fileInputSoal" type="file" class="w-full text-xs">
+        <button id="btnPublikasi" onclick="buatSoal()" class="w-full bg-green-600 text-white font-bold py-2 rounded-lg">
           Publikasikan Soal
         </button>
       </div>
 
-      <!-- DAFTAR SOAL GURU -->
-      <div class="bg-white p-6 rounded-xl shadow-md">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">📚 Kelola Soal Dipublikasi</h2>
-        <div id="daftarSoalGuru" class="space-y-4">
-          <p class="text-slate-500 text-sm">Memuat soal...</p>
-        </div>
+      <div class="border-t pt-4">
+        <h3 class="font-bold mb-2">📚 Daftar Soal</h3>
+        <div id="daftarSoalGuru" class="space-y-3"></div>
       </div>
 
-      <!-- DAFTAR JAWABAN SISWA -->
-      <div class="bg-white p-6 rounded-xl shadow-md">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">📋 Jawaban Siswa & Penilaian (Real-Time)</h2>
-        <div id="daftarJawaban" class="space-y-4">
-          <p class="text-slate-500 text-sm">Memuat jawaban siswa...</p>
-        </div>
+      <div class="border-t pt-4">
+        <h3 class="font-bold mb-2">📋 Jawaban Siswa</h3>
+        <div id="daftarJawaban" class="space-y-3"></div>
       </div>
     </div>
 
-    <!-- DASHBOARD SISWA -->
+    <!-- DASHBOARD MURID -->
     <div id="siswaDashboard" class="hidden space-y-6">
-      <div class="bg-white p-6 rounded-xl shadow-md">
-        <h2 class="text-xl font-bold text-slate-800 mb-1">👋 Selamat Datang, <span id="namaSiswaHeader">Siswa</span>!</h2>
-        <p class="text-slate-500 text-sm">Kelas: <span id="kelasSiswaHeader">-</span></p>
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h2 class="font-black text-xl">PORTAL MURID</h2>
+          <p class="text-xs text-slate-500"><span id="lblNamaSiswa"></span> (<span id="lblKelasSiswa"></span>)</p>
+        </div>
+        <button onclick="location.reload()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">Keluar</button>
       </div>
 
-      <div class="bg-white p-6 rounded-xl shadow-md">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">📝 Soal Tersedia</h2>
-        <div id="daftarSoalSiswa" class="space-y-4">
-          <p class="text-slate-500 text-sm">Memuat soal...</p>
-        </div>
+      <div>
+        <h3 class="font-bold mb-3">📝 Soal Tersedia</h3>
+        <div id="daftarSoalSiswa" class="space-y-4"></div>
       </div>
     </div>
+
   </div>
 
   <script>
     const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co"; 
-    const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li"; // Masukkan Anon Key milikmu
+    const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li";
     let db;
 
-    try {
-      db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } catch(e) {}
+    try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){}
 
+    let selectedChoice = '';
     let currentStudent = { nama: '', kelas: '' };
 
-    function refreshMath() {
-      setTimeout(() => {
-        if (window.renderMathInElement) {
-          renderMathInElement(document.body, {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '$', right: '$', display: false}
-            ]
-          });
-        }
-      }, 300);
+    function showScreen(id) {
+      ['screenMain', 'screenGuruLogin', 'screenRegister', 'guruDashboard', 'siswaDashboard'].forEach(s => {
+        document.getElementById(s).classList.add('hidden');
+      });
+      document.getElementById(id).classList.remove('hidden');
     }
 
-    async function loginGuru() {
-      const email = prompt("Masukkan email Guru:");
-      if (!email) return;
+    function selectOption(choice) {
+      selectedChoice = choice;
+      document.getElementById('optRegister').classList.remove('selected');
+      document.getElementById('optGuru').classList.remove('selected');
 
-      document.getElementById('authSection').classList.add('hidden');
-      document.getElementById('guruDashboard').classList.remove('hidden');
+      if (choice === 'register') document.getElementById('optRegister').classList.add('selected');
+      if (choice === 'guru') document.getElementById('optGuru').classList.add('selected');
+    }
+
+    async function handleMainNext() {
+      const username = document.getElementById('mainUsername').value.trim();
+      const password = document.getElementById('mainPassword').value.trim();
+
+      if (selectedChoice === 'register') {
+        showScreen('screenRegister');
+      } else if (selectedChoice === 'guru') {
+        showScreen('screenGuruLogin');
+      } else {
+        // Login Murid Langsung
+        if (!username || !password) {
+          return alert("Masukkan Username & Password murid, atau pilih salah satu opsi di bawah!");
+        }
+
+        const { data, error } = await db.from('students')
+          .select('*')
+          .eq('nama', username)
+          .eq('password', password)
+          .single();
+
+        if (error || !data) {
+          alert("Login Murid gagal! Nama akun atau password salah.");
+        } else {
+          currentStudent = { nama: data.nama, kelas: data.kelas };
+          document.getElementById('lblNamaSiswa').innerText = data.nama;
+          document.getElementById('lblKelasSiswa').innerText = data.kelas;
+          showScreen('siswaDashboard');
+          loadSoalSiswa();
+        }
+      }
+    }
+
+    async function submitRegister() {
+      const nama = document.getElementById('regNama').value.trim();
+      const kelas = document.getElementById('regKelas').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+
+      if (!nama || !kelas || !password) return alert("Semua kolom registrasi wajib diisi!");
+
+      const { error } = await db.from('students').insert([{ nama, kelas, password }]);
+
+      if (!error) {
+        alert("🎉 Akun Murid Berhasil Dibuat! Silakan Login di halaman utama.");
+        showScreen('screenMain');
+      } else {
+        alert("Gagal membuat akun: " + error.message);
+      }
+    }
+
+    function submitLoginGuru() {
+      const nama = document.getElementById('guruNamaInput').value.trim();
+      if (!nama) return alert("Masukkan Nama Akun Guru!");
+
+      showScreen('guruDashboard');
       loadSoalGuru();
       loadJawabanGuru();
-      aktifkanRealtimeGuru();
     }
 
-    async function loginSiswa() {
-      const nama = document.getElementById('siswaNama').value;
-      const kelas = document.getElementById('siswaKelas').value;
-
-      if (!nama || !kelas) return alert("Isi Nama dan Kelas terlebih dahulu!");
-
-      currentStudent = { nama, kelas };
-      document.getElementById('namaSiswaHeader').innerText = nama;
-      document.getElementById('kelasSiswaHeader').innerText = kelas;
-      document.getElementById('authSection').classList.add('hidden');
-      document.getElementById('siswaDashboard').classList.remove('hidden');
-
-      loadSoalSiswa();
-      aktifkanRealtimeSiswa();
-    }
-
-    // GURU: Buat Soal + Direct File Upload ke Storage
+    // OPERASI DATABASE
     async function buatSoal() {
       const judul = document.getElementById('judulSoal').value;
       const deskripsi = document.getElementById('deskripsiSoal').value;
       const fileInput = document.getElementById('fileInputSoal');
-      const btnPublikasi = document.getElementById('btnPublikasi');
+      const btn = document.getElementById('btnPublikasi');
 
-      if (!judul || !deskripsi) return alert("Judul dan deskripsi wajib diisi!");
+      if (!judul || !deskripsi) return alert("Isi judul dan deskripsi!");
 
       let fileUrl = null;
-
-      // Cek apakah ada file yang dipilih
       if (fileInput.files.length > 0) {
-        btnPublikasi.innerText = "Mengunggah File...";
-        btnPublikasi.disabled = true;
-
+        btn.innerText = "Uploading...";
         const file = fileInput.files[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-
-        // Upload ke Supabase Storage (Bucket 'lampiran')
-        const { data: uploadData, error: uploadError } = await db.storage
-          .from('lampiran')
-          .upload(fileName, file);
-
-        if (uploadError) {
-          btnPublikasi.innerText = "Publikasikan Soal";
-          btnPublikasi.disabled = false;
-          return alert("Gagal mengunggah file: " + uploadError.message);
+        const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
+        const { error: upErr } = await db.storage.from('lampiran').upload(fileName, file);
+        if (!upErr) {
+          fileUrl = db.storage.from('lampiran').getPublicUrl(fileName).data.publicUrl;
         }
-
-        // Ambil Public URL
-        const { data: publicUrlData } = db.storage.from('lampiran').getPublicUrl(fileName);
-        fileUrl = publicUrlData.publicUrl;
       }
 
-      // Simpan soal ke database
-      const { error } = await db.from('assignments').insert([{ judul, deskripsi, file_url: fileUrl }]);
-
-      btnPublikasi.innerText = "Publikasikan Soal";
-      btnPublikasi.disabled = false;
-
-      if (!error) {
-        alert("Soal berhasil dibuat!");
-        document.getElementById('judulSoal').value = '';
-        document.getElementById('deskripsiSoal').value = '';
-        fileInput.value = '';
-        loadSoalGuru();
-      } else {
-        alert("Gagal membuat soal: " + error.message);
-      }
+      await db.from('assignments').insert([{ judul, deskripsi, file_url: fileUrl }]);
+      btn.innerText = "Publikasikan Soal";
+      alert("Soal dipublikasikan!");
+      document.getElementById('judulSoal').value = '';
+      document.getElementById('deskripsiSoal').value = '';
+      loadSoalGuru();
     }
 
-    // Fungsi Render Tampilan Media (Gambar, Video, atau Link Dokumen)
     function renderMedia(fileUrl) {
       if (!fileUrl) return '';
       const ext = fileUrl.split('.').pop().toLowerCase();
-      
-      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-        return `<div class="mt-2"><img src="${fileUrl}" class="max-h-60 rounded border shadow-sm"></div>`;
-      } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
-        return `<div class="mt-2"><video controls class="max-h-60 rounded border"><source src="${fileUrl}"></video></div>`;
-      } else if (['mp3', 'wav'].includes(ext)) {
-        return `<div class="mt-2"><audio controls class="w-full"><source src="${fileUrl}"></audio></div>`;
-      } else {
-        return `<div class="mt-2"><a href="${fileUrl}" target="_blank" class="text-xs text-blue-600 underline font-semibold">📎 Download / Buka Lampiran File</a></div>`;
-      }
+      if (['jpg', 'png', 'jpeg', 'gif'].includes(ext)) return `<img src="${fileUrl}" class="max-h-40 rounded mt-2">`;
+      if (['mp4', 'webm'].includes(ext)) return `<video controls class="max-h-40 rounded mt-2"><source src="${fileUrl}"></video>`;
+      return `<a href="${fileUrl}" target="_blank" class="text-xs text-blue-600 underline block mt-2">📎 Buka File Lampiran</a>`;
     }
 
-    // GURU: Load Soal
     async function loadSoalGuru() {
       const container = document.getElementById('daftarSoalGuru');
-      const { data: soal } = await db.from('assignments').select('*').order('created_at', { ascending: false });
-
-      if (!soal || !soal.length) {
-        container.innerHTML = `<p class="text-slate-500 text-sm">Belum ada soal dipublikasi.</p>`;
-        return;
-      }
-
-      container.innerHTML = soal.map(s => `
-        <div class="border p-4 rounded-lg bg-slate-50 flex justify-between items-start">
-          <div class="w-full pr-4">
-            <h3 class="font-bold text-slate-800">${s.judul}</h3>
-            <p class="text-sm text-slate-600 mt-1">${s.deskripsi}</p>
+      const { data } = await db.from('assignments').select('*').order('created_at', { ascending: false });
+      container.innerHTML = (data || []).map(s => `
+        <div class="border p-3 rounded bg-slate-50 flex justify-between">
+          <div>
+            <h4 class="font-bold">${s.judul}</h4>
+            <p class="text-sm text-slate-600">${s.deskripsi}</p>
             ${renderMedia(s.file_url)}
           </div>
-          <button onclick="hapusSoal(${s.id})" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded shrink-0">
-            Hapus Soal
-          </button>
+          <button onclick="hapusSoal(${s.id})" class="text-xs text-red-600 font-bold">Hapus</button>
         </div>
       `).join('');
-      refreshMath();
     }
 
     async function hapusSoal(id) {
-      if (!confirm("Yakin ingin menghapus soal ini?")) return;
-      const { error } = await db.from('assignments').delete().eq('id', id);
-      if (!error) {
-        alert("Soal berhasil dihapus!");
+      if (confirm("Hapus soal ini?")) {
+        await db.from('assignments').delete().eq('id', id);
         loadSoalGuru();
-      } else {
-        alert("Gagal menghapus soal: " + error.message);
       }
     }
 
-    // GURU: Load Jawaban Siswa
     async function loadJawabanGuru() {
       const container = document.getElementById('daftarJawaban');
-      const { data, error } = await db.from('submissions').select('*, assignments(judul)').order('created_at', { ascending: false });
-
-      if (error || !data || !data.length) {
-        container.innerHTML = `<p class="text-slate-500 text-sm">Belum ada jawaban masuk.</p>`;
-        return;
-      }
-
-      container.innerHTML = data.map(sub => `
-        <div class="border p-4 rounded-lg bg-slate-50 shadow-sm">
-          <div class="flex justify-between items-center mb-2">
-            <span class="font-bold text-slate-900">${sub.student_name || 'Siswa Tanpa Nama'} (${sub.student_class || '-'})</span>
-            <span class="text-xs text-indigo-600 font-semibold">Tugas: ${sub.assignments?.judul || 'Soal'}</span>
-          </div>
-          <div class="text-sm text-slate-800 bg-white p-3 rounded border mb-3 whitespace-pre-line">${sub.jawaban}</div>
-          
-          <div class="flex items-center gap-2">
-            <input id="nilai-${sub.id}" type="number" placeholder="Nilai (0-100)" value="${sub.nilai !== null ? sub.nilai : ''}" class="w-32 p-1 border rounded text-sm">
-            <button onclick="beriNilai(${sub.id})" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">
-              Simpan Nilai
-            </button>
-          </div>
+      const { data } = await db.from('submissions').select('*, assignments(judul)').order('created_at', { ascending: false });
+      container.innerHTML = (data || []).map(sub => `
+        <div class="border p-3 rounded bg-slate-50">
+          <div class="font-bold text-sm">${sub.student_name || 'Murid'} (${sub.student_class || '-'})</div>
+          <p class="text-xs text-slate-500 mb-2">Soal: ${sub.assignments?.judul || '-'}</p>
+          <p class="text-sm bg-white p-2 border rounded">${sub.jawaban}</p>
         </div>
       `).join('');
-      refreshMath();
     }
 
-    async function beriNilai(subId) {
-      const nilai = document.getElementById(`nilai-${subId}`).value;
-      const { error } = await db.from('submissions').update({ nilai: parseInt(nilai) }).eq('id', subId);
-      if (!error) alert("Nilai berhasil disimpan!");
-    }
-
-    // SISWA: Load Soal
     async function loadSoalSiswa() {
       const container = document.getElementById('daftarSoalSiswa');
-      const { data: soal } = await db.from('assignments').select('*').order('created_at', { ascending: false });
-
-      if (!soal || !soal.length) {
-        container.innerHTML = `<p class="text-slate-500 text-sm">Belum ada soal dari guru.</p>`;
-        return;
-      }
-
-      container.innerHTML = soal.map(s => `
-        <div class="border p-4 rounded-lg bg-white shadow-sm">
-          <h3 class="font-bold text-indigo-900">${s.judul}</h3>
-          <div class="text-sm text-slate-600 my-2">${s.deskripsi}</div>
+      const { data } = await db.from('assignments').select('*').order('created_at', { ascending: false });
+      container.innerHTML = (data || []).map(s => `
+        <div class="border p-3 rounded bg-white shadow-sm">
+          <h4 class="font-bold text-indigo-900">${s.judul}</h4>
+          <p class="text-sm text-slate-700 my-1">${s.deskripsi}</p>
           ${renderMedia(s.file_url)}
-          
-          <textarea id="jawaban-${s.id}" placeholder="Ketik jawabanmu..." class="w-full p-2 border rounded text-sm my-2 h-24"></textarea>
-          <button onclick="kirimJawaban(${s.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded">
-            Kirim Jawaban
-          </button>
+          <textarea id="jwb-${s.id}" placeholder="Ketik jawaban..." class="w-full p-2 border rounded text-sm my-2 h-16"></textarea>
+          <button onclick="kirimJawaban(${s.id})" class="btn-lime text-xs px-4 py-2 rounded">Kirim Jawaban</button>
         </div>
       `).join('');
-      refreshMath();
     }
 
-    async function kirimJawaban(soalId) {
-      const teksJawaban = document.getElementById(`jawaban-${soalId}`).value;
-      if (!teksJawaban) return alert("Jawaban tidak boleh kosong!");
-
-      const { error } = await db.from('submissions').insert([{
-        assignment_id: soalId,
-        jawaban: teksJawaban,
+    async function kirimJawaban(id) {
+      const txt = document.getElementById(`jwb-${id}`).value;
+      if (!txt) return alert("Jawaban kosong!");
+      await db.from('submissions').insert([{
+        assignment_id: id,
+        jawaban: txt,
         student_name: currentStudent.nama,
         student_class: currentStudent.kelas
       }]);
-
-      if (!error) {
-        alert("🎉 Jawaban berhasil dikirim!");
-        document.getElementById(`jawaban-${soalId}`).value = '';
-      } else {
-        alert("Gagal mengirim jawaban: " + error.message);
-      }
-    }
-
-    // REAL-TIME HANDLERS
-    function aktifkanRealtimeGuru() {
-      db.channel('rt_guru')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'submissions' }, () => loadJawabanGuru())
-        .subscribe();
-    }
-
-    function aktifkanRealtimeSiswa() {
-      db.channel('rt_siswa')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () => loadSoalSiswa())
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'submissions' }, payload => {
-          if (payload.new.student_name === currentStudent.nama && payload.new.nilai !== null) {
-            alert(`🎉 Nilai kamu telah keluar: ${payload.new.nilai}`);
-          }
-        })
-        .subscribe();
+      alert("Jawaban terkirim!");
+      document.getElementById(`jwb-${id}`).value = '';
     }
   </script>
 </body>
