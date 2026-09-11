@@ -322,15 +322,14 @@
 
     async function submitLoginGuru() {
       const nama = document.getElementById('guruNamaInput').value.trim();
-      const inputSandi = document.getElementById('guruSandiInput').value.trim();
+      // .trim() menghapus spasi & .toUpperCase() membuat huruf kapital semua otomatis
+      const inputSandi = document.getElementById('guruSandiInput').value.trim().toUpperCase();
 
       if (!nama) return alert("Masukkan Nama Akun Guru!");
       if (!inputSandi) return alert("Masukkan Kata Sandi Otorisasi Guru!");
 
-      // Verifikasi Sandi dengan Hash SHA-256
-      const hashedInput = await hashString(inputSandi);
-
-      if (hashedInput !== GURU_PASSWORD_HASH) {
+      // Pengecekan langsung yang fleksibel (tidak peka huruf besar/kecil)
+      if (inputSandi !== "SM4ANTEN") {
         alert("❌ Sandi Otorisasi Guru Salah! Akses Ditolak.");
         return;
       }
