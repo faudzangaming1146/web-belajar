@@ -4,15 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Platform Belajar & Interaktif</title>
+
+  <!-- Tailwind CSS & Supabase -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
+  <!-- KaTeX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
 
   <style>
-    body { background-color: #f8f9fa; font-family: system-ui, -apple-system, sans-serif; }
+    body { 
+      background-color: #f8f9fa; 
+      font-family: system-ui, -apple-system, sans-serif;
+      /* Mencegah seleksi teks/copy-paste oleh siswa */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     .canva-card {
       border: 8px solid #E6F08B;
       border-radius: 20px;
@@ -47,12 +58,12 @@
 
   <div class="canva-card p-6 shadow-xl relative">
 
-    <!-- 1. HALAMAN UTAMA (Gambar 1) -->
+    <!-- 1. HALAMAN UTAMA -->
     <div id="screenMain" class="space-y-4">
       <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-6">Platform Belajar & Interaktif</h1>
       
       <div>
-        <label class="block font-black text-sm uppercase mb-1">LOGIN</label>
+        <label class="block font-black text-sm uppercase mb-1">LOGIN MURID (NAMA AKUN)</label>
         <input id="mainUsername" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
       </div>
 
@@ -62,16 +73,16 @@
       </div>
 
       <div class="pt-2">
-        <label class="block font-black text-sm mb-2">pilihan</label>
+        <label class="block font-black text-sm mb-2 uppercase">pilihan</label>
 
-        <!-- Pilihan 1: Buat Akun Baru -->
-        <div id="optRegister" onclick="selectOption('register')" class="option-box p-6 mb-3 flex items-center">
-          <span class="font-bold text-slate-800 text-lg">buat akun &nbsp;&nbsp; buat akun baru</span>
+        <!-- Opsi 1: Buat Akun Murid Baru -->
+        <div id="optRegSiswa" onclick="selectOption('regSiswa')" class="option-box p-4 mb-3 flex items-center">
+          <span class="font-bold text-slate-800 text-base uppercase">BUAT AKUN MURID BARU</span>
         </div>
 
-        <!-- Pilihan 2: Login Sebagai Guru -->
-        <div id="optGuru" onclick="selectOption('guru')" class="option-box p-6 flex items-center">
-          <span class="font-bold text-slate-800 text-lg uppercase">LOGIN SEBAGAI GURU</span>
+        <!-- Opsi 2: Login Sebagai Guru -->
+        <div id="optGuru" onclick="selectOption('guru')" class="option-box p-4 flex items-center">
+          <span class="font-bold text-slate-800 text-base uppercase">LOGIN SEBAGAI GURU</span>
         </div>
       </div>
 
@@ -84,27 +95,32 @@
       </p>
     </div>
 
-    <!-- 2. HALAMAN LOGIN GURU (Gambar 2) -->
-    <div id="screenGuruLogin" class="hidden space-y-6">
-      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-8 uppercase">LOGIN GURU</h1>
+    <!-- 2. HALAMAN LOGIN GURU (DENGAN VERIFIKASI SANDI KHUSUS) -->
+    <div id="screenGuruLogin" class="hidden space-y-4">
+      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-4 uppercase">LOGIN GURU</h1>
 
       <div>
-        <label class="block font-black text-sm uppercase mb-2">NAMA AKUN</label>
+        <label class="block font-black text-sm uppercase mb-1">NAMA AKUN GURU</label>
         <input id="guruNamaInput" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
       </div>
 
-      <div class="pt-20">
+      <div>
+        <label class="block font-black text-sm uppercase mb-1">KATA SANDI OTORISASI GURU</label>
+        <input id="guruSandiInput" type="password" placeholder="Masukkan Sandi Khusus Guru" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
+      </div>
+
+      <div class="pt-8">
         <button onclick="submitLoginGuru()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
           BERIKUTNYA
         </button>
         <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Kembali</button>
         <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
-          Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
+          Akses khusus Guru. Jangan bagikan sandi otorisasi ini kepada siswa.
         </p>
       </div>
     </div>
 
-    <!-- 3. HALAMAN BUAT AKUN MURID BARU (Gambar 4) -->
+    <!-- 3. HALAMAN BUAT AKUN MURID BARU -->
     <div id="screenRegister" class="hidden space-y-4">
       <h1 class="text-3xl font-black tracking-tight text-slate-900 leading-tight uppercase mb-4">
         BUAT AKUN MURID BARU
@@ -125,14 +141,11 @@
         <input id="regPassword" type="password" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
       </div>
 
-      <div class="pt-6">
+      <div class="pt-4">
         <button onclick="submitRegister()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
           BERIKUTNYA
         </button>
         <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Batal / Kembali</button>
-        <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
-          Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
-        </p>
       </div>
     </div>
 
@@ -183,11 +196,54 @@
   </div>
 
   <script>
+    // -------------------------------------------------------------
+    // PROTEKSI MENCEGAH VIEW SOURCE (Ctrl+U) & DEVTOOLS (F12 / Fn+F12)
+    // -------------------------------------------------------------
+    document.addEventListener('contextmenu', e => e.preventDefault()); // Matikan Klik Kanan
+    
+    document.addEventListener('keydown', function(e) {
+      // F12 atau Fn+F12
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl + U (View Source)
+      if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl + Shift + I / J / C (Inspect Element)
+      if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl + S (Mencegah simpan halaman)
+      if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // -------------------------------------------------------------
+    // KONFIGURASI SUPABASE & HASH SANDI
+    // -------------------------------------------------------------
     const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co"; 
     const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li";
     let db;
 
     try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){}
+
+    // Hash SHA-256 dari teks "SM4ANTEN" (Sandi asli tidak ditulis langsung)
+    const GURU_PASSWORD_HASH = "8ba7b8a7f14ee71ec64aa2efc4d29f0f9b60e8cf8d2b3803cf8ec4cdd0f9b3b8";
+
+    // Fungsi enkripsi Hash SHA-256 bawaan browser
+    async function hashString(str) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     let selectedChoice = '';
     let currentStudent = { nama: '', kelas: '' };
@@ -200,11 +256,18 @@
     }
 
     function selectOption(choice) {
+      if (selectedChoice === choice) {
+        selectedChoice = '';
+        document.getElementById('optRegSiswa').classList.remove('selected');
+        document.getElementById('optGuru').classList.remove('selected');
+        return;
+      }
+      
       selectedChoice = choice;
-      document.getElementById('optRegister').classList.remove('selected');
+      document.getElementById('optRegSiswa').classList.remove('selected');
       document.getElementById('optGuru').classList.remove('selected');
 
-      if (choice === 'register') document.getElementById('optRegister').classList.add('selected');
+      if (choice === 'regSiswa') document.getElementById('optRegSiswa').classList.add('selected');
       if (choice === 'guru') document.getElementById('optGuru').classList.add('selected');
     }
 
@@ -212,14 +275,14 @@
       const username = document.getElementById('mainUsername').value.trim();
       const password = document.getElementById('mainPassword').value.trim();
 
-      if (selectedChoice === 'register') {
+      if (selectedChoice === 'regSiswa') {
         showScreen('screenRegister');
       } else if (selectedChoice === 'guru') {
         showScreen('screenGuruLogin');
       } else {
-        // Login Murid Langsung
+        // Login Murid
         if (!username || !password) {
-          return alert("Masukkan Username & Password murid, atau pilih salah satu opsi di bawah!");
+          return alert("Silakan isi Login Murid (Nama Akun & Password) ATAU pilih salah satu opsi di bawah!");
         }
 
         const { data, error } = await db.from('students')
@@ -257,16 +320,29 @@
       }
     }
 
-    function submitLoginGuru() {
+    async function submitLoginGuru() {
       const nama = document.getElementById('guruNamaInput').value.trim();
+      const inputSandi = document.getElementById('guruSandiInput').value.trim();
+
       if (!nama) return alert("Masukkan Nama Akun Guru!");
+      if (!inputSandi) return alert("Masukkan Kata Sandi Otorisasi Guru!");
+
+      // Verifikasi Sandi dengan Hash SHA-256
+      const hashedInput = await hashString(inputSandi);
+
+      if (hashedInput !== GURU_PASSWORD_HASH) {
+        alert("❌ Sandi Otorisasi Guru Salah! Akses Ditolak.");
+        return;
+      }
 
       showScreen('guruDashboard');
       loadSoalGuru();
       loadJawabanGuru();
     }
 
-    // OPERASI DATABASE
+    // -------------------------------------------------------------
+    // OPERASI DATABASE SUPABASE
+    // -------------------------------------------------------------
     async function buatSoal() {
       const judul = document.getElementById('judulSoal').value;
       const deskripsi = document.getElementById('deskripsiSoal').value;
