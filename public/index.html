@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Belajar Interaktif</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-md w-96 text-center">
+    <h1 class="text-2xl font-bold mb-6 text-slate-800">Portal Belajar</h1>
+    
+    <!-- Area Login Guru -->
+    <div class="mb-6 border-b pb-6">
+      <h2 class="text-sm font-semibold text-slate-500 mb-3">AKSES GURU</h2>
+      <button onclick="loginGuru()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition">
+        Login via Google
+      </button>
+    </div>
+
+    <!-- Area Login Siswa -->
+    <div>
+      <h2 class="text-sm font-semibold text-slate-500 mb-3">AKSES SISWA</h2>
+      <input id="nama" type="text" placeholder="Nama Lengkap" class="w-full p-2 border rounded mb-2 text-sm">
+      <input id="kelas" type="text" placeholder="Kelas (contoh: 10 IPA 1)" class="w-full p-2 border rounded mb-2 text-sm">
+      <input id="pass" type="password" placeholder="Password" class="w-full p-2 border rounded mb-3 text-sm">
+      <button onclick="loginSiswa()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">
+        Masuk / Daftar Siswa
+      </button>
+    </div>
+  </div>
+
+  <script>
+    async function loginGuru() {
+      const email = prompt("Masukkan email Google Anda (Simulasi):");
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    function loginSiswa() {
+      alert("Siswa berhasil memuat sesi!");
+    }
+  </script>
+</body>
+</html>
