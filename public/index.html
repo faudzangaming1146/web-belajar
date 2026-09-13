@@ -1,799 +1,142 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Platform Belajar & Interaktif</title>
+// --- INITIALIZATION ---
+// Pastikan kredensial Supabase Anda sudah terpasang dengan benar
+const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  <!-- Google Fonts for Retro/Groovy Style -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Rubik+Glitch&family=Syne:wght@800&display=swap" rel="stylesheet">
+let selectedChoice = null;
+let currentStudent = null;
 
-  <!-- Tailwind CSS & Supabase -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// --- ELS / EVENT LISTENERS ON LOAD ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Cek jika siswa sudah login sebelumnya
+  const savedSession = localStorage.getItem('student_session');
+  if (savedSession) {
+    currentStudent = JSON.parse(savedSession);
+    
+    // Cek ulang status ke database untuk memastikan belum di-banned saat app dibuka
+    checkCurrentStudentStatus();
+  }
+});
+
+// Fungsi untuk mengecek status siswa secara real-time saat aplikasi dibuka
+async function checkCurrentStudentStatus() {
+  if (!currentStudent) return;
   
-  <!-- KaTeX -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+  const { data, error } = await db.from('students')
+    .select('status')
+    .eq('id', currentStudent.id)
+    .maybeSingle();
 
-  <style>
-    body { 
-      background-color: #f8f9fa; 
-      font-family: system-ui, -apple-system, sans-serif;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-    .canva-card {
-      border: 8px solid #E6F08B;
-      border-radius: 20px;
-      background: white;
-      max-width: 900px;
-      width: 100%;
-    }
-    .btn-lime {
-      background-color: #E6F08B;
-      color: #000;
-      font-weight: 800;
-    }
-    .btn-lime:hover {
-      background-color: #dbe874;
-    }
-    .option-box {
-      background-color: #E0E0E0;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .option-box:hover {
-      background-color: #D4D4D4;
-    }
-    .option-box.selected {
-      border: 3px solid #000;
-      background-color: #D4D4D4;
-    }
+  if (data && data.status === 'banned') {
+    localStorage.removeItem('student_session');
+    currentStudent = null;
+    showScreen('screenBanned');
+  }
+}
 
-    /* KARTU BANNED SESUAI GAMBAR DESAIN */
-    .banned-box {
-      background: linear-gradient(135deg, #c7ffd8 0%, #a3c9ff 50%, #8ca6ff 100%);
-      border-radius: 32px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      padding: 50px 30px;
-      text-align: center;
-      width: 100%;
-      max-width: 550px;
-      margin: 0 auto;
-    }
-    .banned-text {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      letter-spacing: 2px;
-      color: #000;
-      text-transform: uppercase;
-      line-height: 1.3;
-    }
-  </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
+// --- FUNGSI NAVIGASI HALAMAN ---
+function showScreen(screenId) {
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(s => s.classList.remove('active'));
+  
+  const target = document.getElementById(screenId);
+  if (target) target.classList.add('active');
+}
 
-  <div class="canva-card p-6 shadow-xl relative">
+function selectRole(role) {
+  selectedChoice = role;
+  const btnReg = document.getElementById('btnOptionReg');
+  const btnGuru = document.getElementById('btnOptionGuru');
 
-    <!-- 1. HALAMAN UTAMA -->
-    <div id="screenMain" class="space-y-4 max-w-md mx-auto">
-      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-6">Platform Belajar & Interaktif</h1>
-      
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">LOGIN MURID (NAMA AKUN)</label>
-        <input id="mainUsername" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
+  if (btnReg) btnReg.classList.remove('selected');
+  if (btnGuru) btnGuru.classList.remove('selected');
 
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">PASSWORD</label>
-        <input id="mainPassword" type="password" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
+  if (role === 'regSiswa' && btnReg) btnReg.classList.add('selected');
+  if (role === 'guru' && btnGuru) btnGuru.classList.add('selected');
+}
 
-      <div class="pt-2">
-        <label class="block font-black text-sm mb-2 uppercase">pilihan</label>
+// --- FUNGSI LOGIN UTAMA (STUDENT CHECK BANNED) ---
+async function handleMainNext() {
+  const usernameInput = document.getElementById('mainUsername');
+  const passwordInput = document.getElementById('mainPassword');
+  
+  const username = usernameInput ? usernameInput.value.trim() : '';
+  const password = passwordInput ? passwordInput.value.trim() : '';
+  const btn = document.getElementById('btnMainNext');
 
-        <div id="optRegSiswa" onclick="selectOption('regSiswa')" class="option-box p-4 mb-3 flex items-center">
-          <span class="font-bold text-slate-800 text-base uppercase">BUAT AKUN MURID BARU</span>
-        </div>
-
-        <div id="optGuru" onclick="selectOption('guru')" class="option-box p-4 flex items-center">
-          <span class="font-bold text-slate-800 text-base uppercase">LOGIN SEBAGAI GURU</span>
-        </div>
-      </div>
-
-      <button id="btnMainNext" onclick="handleMainNext()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide mt-4">
-        BERIKUTNYA
-      </button>
-
-      <p class="text-[10px] text-center text-slate-500 mt-4 leading-tight">
-        Nama profil Canva Anda tidak akan dibagikan. Jangan pernah mengirimkan kata sandi.
-      </p>
-    </div>
-
-    <!-- 2. HALAMAN LOGIN GURU -->
-    <div id="screenGuruLogin" class="hidden space-y-4 max-w-md mx-auto">
-      <h1 class="text-3xl font-black tracking-tight text-slate-900 mb-4 uppercase">LOGIN GURU</h1>
-
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">NAMA AKUN GURU</label>
-        <input id="guruNamaInput" type="text" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
-
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">KATA SANDI OTORISASI GURU</label>
-        <input id="guruSandiInput" type="password" placeholder="Masukkan Sandi Khusus Guru" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
-
-      <div class="pt-8">
-        <button onclick="submitLoginGuru()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
-          BERIKUTNYA
-        </button>
-        <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Kembali</button>
-      </div>
-    </div>
-
-    <!-- 3. HALAMAN BUAT AKUN MURID BARU -->
-    <div id="screenRegister" class="hidden space-y-4 max-w-md mx-auto">
-      <h1 class="text-3xl font-black tracking-tight text-slate-900 leading-tight uppercase mb-4">
-        BUAT AKUN MURID BARU
-      </h1>
-
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">NAMA MURID</label>
-        <input id="regNama" type="text" placeholder="Contoh: Aca atau Ahmad" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
-
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">KELAS (HANYA 10-1 s/d 10-9)</label>
-        <select id="regKelas" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold bg-white">
-          <option value="">-- Pilih Kelas --</option>
-          <option value="10-1">10-1</option>
-          <option value="10-2">10-2</option>
-          <option value="10-3">10-3</option>
-          <option value="10-4">10-4</option>
-          <option value="10-5">10-5</option>
-          <option value="10-6">10-6</option>
-          <option value="10-7">10-7</option>
-          <option value="10-8">10-8</option>
-          <option value="10-9">10-9</option>
-        </select>
-        <p class="text-[11px] text-amber-700 mt-1 font-semibold">*Kelas diluar 10-1 s/d 10-9 tidak diizinkan mendaftar.</p>
-      </div>
-
-      <div>
-        <label class="block font-black text-sm uppercase mb-1">BUAT PASSWORD</label>
-        <input id="regPassword" type="password" class="w-full p-3 border-2 border-slate-400 rounded-lg outline-none focus:border-black font-semibold">
-      </div>
-
-      <div class="pt-4">
-        <button id="btnSubmitReg" onclick="submitRegister()" class="w-full btn-lime py-3 rounded-2xl text-lg uppercase tracking-wide">
-          BERIKUTNYA
-        </button>
-        <button onclick="showScreen('screenMain')" class="w-full text-xs text-slate-500 underline mt-3 text-center block">Batal / Kembali</button>
-      </div>
-    </div>
-
-    <!-- 4. TAMPILAN KHUSUS UNTUK MURID BANNED (PERSIS SAMA DENGAN GAMBAR) -->
-    <div id="screenBanned" class="hidden py-12 px-4 flex flex-col justify-center items-center">
-      <div class="banned-box">
-        <h2 class="banned-text text-2xl md:text-3xl">PERINGATAN</h2>
-        <h2 class="banned-text text-2xl md:text-3xl mt-2">AKUN ANDA TELAH</h2>
-        <h2 class="banned-text text-2xl md:text-3xl mt-2">DI BANNED</h2>
-      </div>
-      <button onclick="logout()" class="mt-8 text-xs text-slate-500 underline font-semibold">Kembali ke Halaman Utama</button>
-    </div>
-
-    <!-- 5. DASHBOARD GURU -->
-    <div id="guruDashboard" class="hidden space-y-6">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h2 class="font-black text-xl">DASHBOARD GURU</h2>
-        <button onclick="logout()" class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded font-bold">Keluar / Logout</button>
-      </div>
-
-      <!-- NAVIGASI TAB GURU -->
-      <div class="flex space-x-2 border-b overflow-x-auto">
-        <button id="tabBtnSoal" onclick="switchGuruTab('soal')" class="px-4 py-2 font-bold text-sm border-b-4 border-black text-black whitespace-nowrap">
-          📌 Buat & Kelola Soal
-        </button>
-        <button id="tabBtnNilai" onclick="switchGuruTab('nilai')" class="px-4 py-2 font-bold text-sm text-slate-500 border-b-4 border-transparent hover:text-black whitespace-nowrap">
-          📊 Rekap Nilai Murid
-        </button>
-        <button id="tabBtnBanned" onclick="switchGuruTab('banned')" class="px-4 py-2 font-bold text-sm text-red-500 border-b-4 border-transparent hover:text-red-700 whitespace-nowrap">
-          🚫 Kelola / Banned Murid
-        </button>
-      </div>
-
-      <!-- TAB 1: KELOLA SOAL & JAWABAN -->
-      <div id="guruTabSoal" class="space-y-6">
-        <div class="space-y-3 bg-slate-50 p-4 rounded-xl border">
-          <h3 class="font-bold">📌 Buat Soal Baru</h3>
-          <input id="judulSoal" type="text" placeholder="Judul Tugas (misal: Tugas 1)" class="w-full p-2 border rounded">
-          <textarea id="deskripsiSoal" placeholder="Pertanyaan..." class="w-full p-2 border rounded h-20"></textarea>
-          <input id="fileInputSoal" type="file" class="w-full text-xs">
-          <button id="btnPublikasi" onclick="buatSoal()" class="w-full bg-green-600 text-white font-bold py-2 rounded-lg">
-            Publikasikan Soal
-          </button>
-        </div>
-
-        <div class="border-t pt-4">
-          <h3 class="font-bold mb-2">📚 Daftar Soal Dipublikasi</h3>
-          <div id="daftarSoalGuru" class="space-y-3"></div>
-        </div>
-
-        <div class="border-t pt-4">
-          <h3 class="font-bold mb-2">📋 Periksa Jawaban & Beri Nilai</h3>
-          <div id="daftarJawaban" class="space-y-3"></div>
-        </div>
-      </div>
-
-      <!-- TAB 2: REKAP NILAI MURID -->
-      <div id="guruTabNilai" class="hidden space-y-4">
-        <div class="flex items-center justify-between bg-slate-100 p-3 rounded-xl">
-          <label class="font-bold text-sm">PILIH KELAS REKAP:</label>
-          <select id="filterKelasGuru" onchange="loadRekapNilai()" class="p-2 border-2 border-black rounded-lg font-bold text-sm bg-white">
-            <option value="10-1">Kelas 10-1</option>
-            <option value="10-2">Kelas 10-2</option>
-            <option value="10-3">Kelas 10-3</option>
-            <option value="10-4">Kelas 10-4</option>
-            <option value="10-5">Kelas 10-5</option>
-            <option value="10-6">Kelas 10-6</option>
-            <option value="10-7">Kelas 10-7</option>
-            <option value="10-8">Kelas 10-8</option>
-            <option value="10-9">Kelas 10-9</option>
-          </select>
-        </div>
-
-        <div class="overflow-x-auto border rounded-xl p-2 bg-white">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr id="tableHeaderRekap" class="bg-slate-200 border-b">
-                <th class="p-2 font-black border-r w-48">NAMA MURID (ALFABETIS)</th>
-              </tr>
-            </thead>
-            <tbody id="tableBodyRekap">
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- TAB 3: PANEL BANNED MURID -->
-      <div id="guruTabBanned" class="hidden space-y-4">
-        <div class="flex items-center justify-between bg-red-50 p-3 rounded-xl border border-red-200">
-          <label class="font-bold text-sm text-red-900">PILIH KELAS UNTUK KELOLA MURID:</label>
-          <select id="filterKelasBanned" onchange="loadBannedPanel()" class="p-2 border-2 border-red-400 rounded-lg font-bold text-sm bg-white">
-            <option value="10-1">Kelas 10-1</option>
-            <option value="10-2">Kelas 10-2</option>
-            <option value="10-3">Kelas 10-3</option>
-            <option value="10-4">Kelas 10-4</option>
-            <option value="10-5">Kelas 10-5</option>
-            <option value="10-6">Kelas 10-6</option>
-            <option value="10-7">Kelas 10-7</option>
-            <option value="10-8">Kelas 10-8</option>
-            <option value="10-9">Kelas 10-9</option>
-          </select>
-        </div>
-
-        <div class="overflow-x-auto border rounded-xl p-2 bg-white">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-slate-100 border-b">
-                <th class="p-3 font-black">NAMA MURID</th>
-                <th class="p-3 font-black">KELAS</th>
-                <th class="p-3 font-black text-center">STATUS AKUN</th>
-                <th class="p-3 font-black text-center">AKSI / KONTROL</th>
-              </tr>
-            </thead>
-            <tbody id="tableBodyBanned">
-              <!-- Baris Murid Banned / Active -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- 6. DASHBOARD MURID -->
-    <div id="siswaDashboard" class="hidden space-y-6 max-w-md mx-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <div>
-          <h2 class="font-black text-xl">PORTAL MURID</h2>
-          <p class="text-xs text-slate-500"><span id="lblNamaSiswa"></span> (<span id="lblKelasSiswa"></span>)</p>
-        </div>
-        <button onclick="logout()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">Keluar / Logout</button>
-      </div>
-
-      <div>
-        <h3 class="font-bold mb-3">📝 Soal Tersedia</h3>
-        <div id="daftarSoalSiswa" class="space-y-4"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    // PROTEKSI KEYBOARD
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'F12' || e.keyCode === 123 || (e.ctrlKey && (e.key === 'u' || e.key === 'U'))) {
-        e.preventDefault();
-        return false;
-      }
-    });
-
-    const SUPABASE_URL = "https://kvrubdzdqpbevleohdzz.supabase.co"; 
-    const SUPABASE_KEY = "sb_publishable_kuFf0gL5py0KUxER0aDlyg_yHz5J9Li";
-    let db;
-
-    try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){}
-
-    const KELAS_IZIN = ["10-1", "10-2", "10-3", "10-4", "10-5", "10-6", "10-7", "10-8", "10-9"];
-    let selectedChoice = '';
-    let currentStudent = null;
-    let isGuruLoggedIn = false;
-
-    // INITALIZE AUTO-LOGIN & REALTIME LISTENERS
-    window.addEventListener('DOMContentLoaded', () => {
-      checkSavedSession();
-      setupRealtimeListeners();
-    });
-
-    // 1. CEK SESI LOGIN DI LOCALSTORAGE
-    async function checkSavedSession() {
-      const savedGuru = localStorage.getItem('guru_session');
-      const savedStudent = localStorage.getItem('student_session');
-
-      if (savedGuru) {
-        isGuruLoggedIn = true;
-        showScreen('guruDashboard');
-        loadSoalGuru();
-        loadJawabanGuru();
-      } else if (savedStudent) {
-        const studentObj = JSON.parse(savedStudent);
-
-        // Validasi Real-time apakah status masih aktif atau banned
-        const { data } = await db.from('students').select('*').eq('id', studentObj.id).single();
-        if (data && data.status === 'banned') {
-          showScreen('screenBanned');
-          return;
-        }
-
-        currentStudent = studentObj;
-        document.getElementById('lblNamaSiswa').innerText = currentStudent.nama;
-        document.getElementById('lblKelasSiswa').innerText = currentStudent.kelas;
-        showScreen('siswaDashboard');
-        loadSoalSiswa();
-      } else {
-        showScreen('screenMain');
-      }
+  if (selectedChoice === 'regSiswa') {
+    showScreen('screenRegister');
+  } else if (selectedChoice === 'guru') {
+    showScreen('screenGuruLogin');
+  } else {
+    if (!username || !password) {
+      return alert("Silakan isi Nama & Password Murid, atau pilih menu di bawah!");
     }
 
-    function logout() {
-      localStorage.removeItem('guru_session');
-      localStorage.removeItem('student_session');
-      currentStudent = null;
-      isGuruLoggedIn = false;
-      showScreen('screenMain');
-    }
-
-    // 2. REALTIME LISTENERS
-    function setupRealtimeListeners() {
-      if(!db) return;
-      
-      db.channel('public:assignments')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () => {
-          if (isGuruLoggedIn) loadSoalGuru();
-          if (currentStudent) loadSoalSiswa();
-        })
-        .subscribe();
-
-      db.channel('public:submissions')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
-          if (isGuruLoggedIn) {
-            loadJawabanGuru();
-            loadRekapNilai();
-          }
-          if (currentStudent) loadSoalSiswa();
-        })
-        .subscribe();
-
-      // Realtime listener untuk perubahan status BANNED murid
-      db.channel('public:students')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
-          if (isGuruLoggedIn) {
-            loadRekapNilai();
-            loadBannedPanel();
-          }
-          // Jika murid yang sedang login di-banned secara langsung oleh guru
-          if (currentStudent && payload.new && payload.new.id === currentStudent.id) {
-            if (payload.new.status === 'banned') {
-              showScreen('screenBanned');
-            }
-          }
-        })
-        .subscribe();
-    }
-
-    function showScreen(id) {
-      ['screenMain', 'screenGuruLogin', 'screenRegister', 'screenBanned', 'guruDashboard', 'siswaDashboard'].forEach(s => {
-        document.getElementById(s).classList.add('hidden');
-      });
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    function selectOption(choice) {
-      if (selectedChoice === choice) {
-        selectedChoice = '';
-        document.getElementById('optRegSiswa').classList.remove('selected');
-        document.getElementById('optGuru').classList.remove('selected');
-        return;
-      }
-      
-      selectedChoice = choice;
-      document.getElementById('optRegSiswa').classList.remove('selected');
-      document.getElementById('optGuru').classList.remove('selected');
-
-      if (choice === 'regSiswa') document.getElementById('optRegSiswa').classList.add('selected');
-      if (choice === 'guru') document.getElementById('optGuru').classList.add('selected');
-    }
-
-    async function handleMainNext() {
-      const username = document.getElementById('mainUsername').value.trim();
-      const password = document.getElementById('mainPassword').value.trim();
-      const btn = document.getElementById('btnMainNext');
-
-      if (selectedChoice === 'regSiswa') {
-        showScreen('screenRegister');
-      } else if (selectedChoice === 'guru') {
-        showScreen('screenGuruLogin');
-      } else {
-        if (!username || !password) {
-          return alert("Isi Login Murid atau pilih opsi di bawah!");
-        }
-
-        btn.innerText = "Memproses...";
-        btn.disabled = true;
-
-        const { data, error } = await db.from('students')
-          .select('*')
-          .eq('nama', username)
-          .eq('password', password)
-          .single();
-
-        btn.innerText = "BERIKUTNYA";
-        btn.disabled = false;
-
-        if (error || !data) {
-          alert("Login Murid gagal! Nama atau password salah.");
-        } else if (data.status === 'banned') {
-          // JIKA TERBANNED, TAMPILKAN SCREEN BANNED DENGAN DESAIN KHUSUS
-          showScreen('screenBanned');
-        } else {
-          currentStudent = data;
-          localStorage.setItem('student_session', JSON.stringify(currentStudent));
-
-          document.getElementById('lblNamaSiswa').innerText = data.nama;
-          document.getElementById('lblKelasSiswa').innerText = data.kelas;
-          showScreen('siswaDashboard');
-          loadSoalSiswa();
-        }
-      }
-    }
-
-    async function submitRegister() {
-      const nama = document.getElementById('regNama').value.trim();
-      const kelas = document.getElementById('regKelas').value;
-      const password = document.getElementById('regPassword').value.trim();
-      const btn = document.getElementById('btnSubmitReg');
-
-      if (!nama || !kelas || !password) return alert("Semua kolom registrasi wajib diisi!");
-
-      if (!KELAS_IZIN.includes(kelas)) {
-        return alert("❌ Pendaftaran Gagal! Hanya kelas 10-1 sampai 10-9 yang diizinkan.");
-      }
-
-      btn.innerText = "Mendaftarkan...";
+    if (btn) {
+      btn.innerText = "Memproses...";
       btn.disabled = true;
+    }
 
-      const { error } = await db.from('students').insert([{ nama, kelas, password, status: 'active' }]);
+    // Ambil data murid dari Supabase
+    const { data, error } = await db.from('students')
+      .select('*')
+      .eq('nama', username)
+      .eq('password', password)
+      .maybeSingle();
 
+    if (btn) {
       btn.innerText = "BERIKUTNYA";
       btn.disabled = false;
-
-      if (!error) {
-        alert("🎉 Akun Murid Berhasil Dibuat! Silakan Login di halaman utama.");
-        showScreen('screenMain');
-      } else {
-        alert("Gagal membuat akun: " + error.message);
-      }
     }
 
-    function submitLoginGuru() {
-      const nama = document.getElementById('guruNamaInput').value.trim();
-      const inputSandi = document.getElementById('guruSandiInput').value.trim().toUpperCase();
+    if (error || !data) {
+      alert("Login Murid gagal! Nama atau password salah.");
+    } else if (data.status === 'banned') {
+      // Hapus sesi & paksa ke layar BANNED
+      localStorage.removeItem('student_session');
+      currentStudent = null;
+      showScreen('screenBanned');
+    } else {
+      currentStudent = data;
+      localStorage.setItem('student_session', JSON.stringify(currentStudent));
 
-      if (!nama) return alert("Masukkan Nama Akun Guru!");
-      if (inputSandi !== "SM4ANTEN") return alert("❌ Sandi Otorisasi Guru Salah!");
+      const lblNama = document.getElementById('lblNamaSiswa');
+      const lblKelas = document.getElementById('lblKelasSiswa');
+      if (lblNama) lblNama.innerText = data.nama;
+      if (lblKelas) lblKelas.innerText = data.kelas;
 
-      isGuruLoggedIn = true;
-      localStorage.setItem('guru_session', JSON.stringify({ nama }));
-
-      showScreen('guruDashboard');
-      loadSoalGuru();
-      loadJawabanGuru();
+      showScreen('siswaDashboard');
+      if (typeof loadSoalSiswa === 'function') loadSoalSiswa();
     }
+  }
+}
 
-    function switchGuruTab(tab) {
-      document.getElementById('guruTabSoal').classList.add('hidden');
-      document.getElementById('guruTabNilai').classList.add('hidden');
-      document.getElementById('guruTabBanned').classList.add('hidden');
+// --- FUNGSI ACTION BANNED (PANEL GURU) ---
+async function toggleBannedStudent(studentId, newStatus) {
+  const confirmMsg = newStatus === 'banned' 
+    ? "Yakin ingin MENG-BANNED akun murid ini?" 
+    : "Buka status banned murid ini?";
 
-      document.getElementById('tabBtnSoal').className = "px-4 py-2 font-bold text-sm text-slate-500 border-b-4 border-transparent hover:text-black whitespace-nowrap";
-      document.getElementById('tabBtnNilai').className = "px-4 py-2 font-bold text-sm text-slate-500 border-b-4 border-transparent hover:text-black whitespace-nowrap";
-      document.getElementById('tabBtnBanned').className = "px-4 py-2 font-bold text-sm text-red-500 border-b-4 border-transparent hover:text-red-700 whitespace-nowrap";
+  if (confirm(confirmMsg)) {
+    const { error } = await db.from('students')
+      .update({ status: newStatus })
+      .eq('id', studentId);
 
-      if (tab === 'soal') {
-        document.getElementById('guruTabSoal').classList.remove('hidden');
-        document.getElementById('tabBtnSoal').className = "px-4 py-2 font-bold text-sm border-b-4 border-black text-black whitespace-nowrap";
-      } else if (tab === 'nilai') {
-        document.getElementById('guruTabNilai').classList.remove('hidden');
-        document.getElementById('tabBtnNilai').className = "px-4 py-2 font-bold text-sm border-b-4 border-black text-black whitespace-nowrap";
-        loadRekapNilai();
-      } else if (tab === 'banned') {
-        document.getElementById('guruTabBanned').classList.remove('hidden');
-        document.getElementById('tabBtnBanned').className = "px-4 py-2 font-bold text-sm border-b-4 border-red-600 text-red-600 font-extrabold whitespace-nowrap";
-        loadBannedPanel();
-      }
+    if (error) {
+      alert("Gagal mengubah status: " + error.message);
+    } else {
+      alert(`Status murid berhasil diubah menjadi: ${newStatus.toUpperCase()}`);
+      if (typeof loadBannedPanel === 'function') loadBannedPanel();
+      if (typeof loadRekapNilai === 'function') loadRekapNilai();
     }
+  }
+}
 
-    // OPERASI SOAL & JAWABAN
-    async function buatSoal() {
-      const judul = document.getElementById('judulSoal').value.trim();
-      const deskripsi = document.getElementById('deskripsiSoal').value.trim();
-      const fileInput = document.getElementById('fileInputSoal');
-      const btn = document.getElementById('btnPublikasi');
-
-      if (!judul || !deskripsi) return alert("Isi judul dan deskripsi!");
-
-      btn.innerText = "Mengirim...";
-      btn.disabled = true;
-
-      let fileUrl = null;
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
-        const { error: upErr } = await db.storage.from('lampiran').upload(fileName, file);
-        if (!upErr) {
-          fileUrl = db.storage.from('lampiran').getPublicUrl(fileName).data.publicUrl;
-        }
-      }
-
-      await db.from('assignments').insert([{ judul, deskripsi, file_url: fileUrl }]);
-
-      btn.innerText = "Publikasikan Soal";
-      btn.disabled = false;
-
-      alert("Soal dipublikasikan!");
-      document.getElementById('judulSoal').value = '';
-      document.getElementById('deskripsiSoal').value = '';
-      document.getElementById('fileInputSoal').value = '';
-      
-      loadSoalGuru();
-    }
-
-    function renderMedia(fileUrl) {
-      if (!fileUrl) return '';
-      const ext = fileUrl.split('.').pop().toLowerCase();
-      if (['jpg', 'png', 'jpeg', 'gif'].includes(ext)) return `<img src="${fileUrl}" class="max-h-40 rounded mt-2">`;
-      if (['mp4', 'webm'].includes(ext)) return `<video controls class="max-h-40 rounded mt-2"><source src="${fileUrl}"></video>`;
-      return `<a href="${fileUrl}" target="_blank" class="text-xs text-blue-600 underline block mt-2">📎 Buka File Lampiran</a>`;
-    }
-
-    async function loadSoalGuru() {
-      const container = document.getElementById('daftarSoalGuru');
-      const { data } = await db.from('assignments').select('*').order('created_at', { ascending: false });
-      container.innerHTML = (data || []).map(s => `
-        <div class="border p-3 rounded bg-slate-50 flex justify-between items-start">
-          <div>
-            <h4 class="font-bold">${s.judul}</h4>
-            <p class="text-sm text-slate-600">${s.deskripsi}</p>
-            ${renderMedia(s.file_url)}
-          </div>
-          <button onclick="hapusSoal(${s.id})" class="text-xs text-red-600 font-bold">Hapus</button>
-        </div>
-      `).join('');
-    }
-
-    async function hapusSoal(id) {
-      if (confirm("Hapus soal ini?")) {
-        await db.from('assignments').delete().eq('id', id);
-        loadSoalGuru();
-      }
-    }
-
-    async function loadJawabanGuru() {
-      const container = document.getElementById('daftarJawaban');
-      const { data } = await db.from('submissions').select('*, assignments(judul)').order('created_at', { ascending: false });
-      
-      container.innerHTML = (data || []).map(sub => `
-        <div class="border p-3 rounded bg-slate-50">
-          <div class="font-bold text-sm">${sub.student_name || 'Murid'} (${sub.student_class || '-'})</div>
-          <p class="text-xs text-slate-500 mb-1">Soal: ${sub.assignments?.judul || '-'}</p>
-          <p class="text-sm bg-white p-2 border rounded mb-2">${sub.jawaban}</p>
-          <div class="flex items-center space-x-2">
-            <input id="inputNilai-${sub.id}" type="text" placeholder="Nilai (misal: 90)" value="${sub.nilai || ''}" class="p-1 border rounded w-28 text-xs font-bold">
-            <button onclick="simpanNilai(${sub.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">Simpan Nilai</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function simpanNilai(subId) {
-      const val = document.getElementById(`inputNilai-${subId}`).value;
-      await db.from('submissions').update({ nilai: val }).eq('id', subId);
-      alert("Nilai disimpan!");
-      loadRekapNilai();
-    }
-
-    // REKAP NILAI (MURID BANNED DITHILANGKAN)
-    async function loadRekapNilai() {
-      const kelasSelected = document.getElementById('filterKelasGuru').value;
-      
-      const { data: assignments } = await db.from('assignments').select('*').order('created_at', { ascending: true });
-      
-      // HANYA AMBIL MURID YANG STATUSNYA 'active' (BANNED OTOMATIS TIDAK MUNCUL)
-      const { data: students } = await db.from('students')
-        .select('*')
-        .eq('kelas', kelasSelected)
-        .neq('status', 'banned');
-
-      const sortedStudents = (students || []).sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
-      const { data: submissions } = await db.from('submissions').select('*').eq('student_class', kelasSelected);
-
-      const headerEl = document.getElementById('tableHeaderRekap');
-      let headerHTML = `<th class="p-2 font-black border-r min-w-[160px]">NAMA MURID</th>`;
-      (assignments || []).forEach((a, index) => {
-        headerHTML += `<th class="p-2 font-black border-r text-center min-w-[90px]">${a.judul || 'Tugas ' + (index+1)}</th>`;
-      });
-      headerEl.innerHTML = headerHTML;
-
-      const bodyEl = document.getElementById('tableBodyRekap');
-      if (sortedStudents.length === 0) {
-        bodyEl.innerHTML = `<tr><td colspan="${(assignments?.length || 0) + 1}" class="p-4 text-center text-slate-400">Tidak ada murid aktif di kelas ${kelasSelected}</td></tr>`;
-        return;
-      }
-
-      let bodyHTML = '';
-      sortedStudents.forEach(st => {
-        bodyHTML += `<tr class="border-b hover:bg-slate-50">`;
-        bodyHTML += `<td class="p-2 font-bold border-r text-slate-800">${st.nama}</td>`;
-
-        (assignments || []).forEach(a => {
-          const sub = (submissions || []).find(s => s.assignment_id === a.id && s.student_name === st.nama);
-          
-          if (!sub) {
-            bodyHTML += `<td class="p-2 border-r text-center font-bold text-slate-300">-</td>`;
-          } else {
-            const displayNilai = sub.nilai ? `<span class="text-green-700 font-extrabold">${sub.nilai}</span>` : `<span class="text-amber-600 font-medium">Belum Dinilai</span>`;
-            bodyHTML += `<td class="p-2 border-r text-center">${displayNilai}</td>`;
-          }
-        });
-
-        bodyHTML += `</tr>`;
-      });
-
-      bodyEl.innerHTML = bodyHTML;
-    }
-
-    // LOGIKA PANEL BANNED MURID
-    async function loadBannedPanel() {
-      const kelasSelected = document.getElementById('filterKelasBanned').value;
-      const { data: students } = await db.from('students').select('*').eq('kelas', kelasSelected);
-
-      const sortedStudents = (students || []).sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
-
-      const bodyEl = document.getElementById('tableBodyBanned');
-      if (sortedStudents.length === 0) {
-        bodyEl.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada murid di kelas ${kelasSelected}</td></tr>`;
-        return;
-      }
-
-      bodyEl.innerHTML = sortedStudents.map(st => {
-        const isBanned = st.status === 'banned';
-        return `
-          <tr class="border-b hover:bg-slate-50">
-            <td class="p-3 font-bold text-slate-800">${st.nama}</td>
-            <td class="p-3 font-semibold text-slate-600">${st.kelas}</td>
-            <td class="p-3 text-center">
-              ${isBanned 
-                ? '<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-extrabold text-[10px]">DI BANNED</span>' 
-                : '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-extrabold text-[10px]">AKTIF</span>'}
-            </td>
-            <td class="p-3 text-center">
-              ${isBanned 
-                ? `<button onclick="toggleBannedStudent(${st.id}, 'active')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Buka Banned</button>`
-                : `<button onclick="toggleBannedStudent(${st.id}, 'banned')" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Banned Akun</button>`}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    async function toggleBannedStudent(studentId, newStatus) {
-      const confirmMsg = newStatus === 'banned' ? "Yakin ingin MENG-BANNED akun murid ini?" : "Buka status banned murid ini?";
-      if (confirm(confirmMsg)) {
-        await db.from('students').update({ status: newStatus }).eq('id', studentId);
-        loadBannedPanel();
-        loadRekapNilai();
-      }
-    }
-
-    async function loadSoalSiswa() {
-      const container = document.getElementById('daftarSoalSiswa');
-      const { data: assignments } = await db.from('assignments').select('*').order('created_at', { ascending: false });
-      const { data: mySubmissions } = await db.from('submissions').select('*').eq('student_name', currentStudent.nama);
-
-      container.innerHTML = (assignments || []).map(s => {
-        const mySub = (mySubmissions || []).find(sub => sub.assignment_id === s.id);
-        
-        let statusBox = '';
-        if (mySub) {
-          statusBox = `
-            <div class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 font-semibold">
-              ✅ Sudah Dikirim! <br>
-              Jawaban Kamu: "${mySub.jawaban}" <br>
-              Nilai: <strong class="text-sm">${mySub.nilai || 'Belum Dinilai'}</strong>
-            </div>
-          `;
-        } else {
-          statusBox = `
-            <textarea id="jwb-${s.id}" placeholder="Ketik jawaban..." class="w-full p-2 border rounded text-sm my-2 h-16"></textarea>
-            <button id="btnKirim-${s.id}" onclick="kirimJawaban(${s.id})" class="btn-lime text-xs px-4 py-2 rounded">Kirim Jawaban</button>
-          `;
-        }
-
-        return `
-          <div class="border p-3 rounded bg-white shadow-sm">
-            <h4 class="font-bold text-indigo-900">${s.judul}</h4>
-            <p class="text-sm text-slate-700 my-1">${s.deskripsi}</p>
-            ${renderMedia(s.file_url)}
-            ${statusBox}
-          </div>
-        `;
-      }).join('');
-    }
-
-    async function kirimJawaban(id) {
-      const txt = document.getElementById(`jwb-${id}`).value.trim();
-      const btn = document.getElementById(`btnKirim-${id}`);
-
-      if (!txt) return alert("Jawaban kosong!");
-
-      btn.innerText = "Mengirim...";
-      btn.disabled = true;
-
-      const { error } = await db.from('submissions').insert([{
-        assignment_id: id,
-        jawaban: txt,
-        student_name: currentStudent.nama,
-        student_class: currentStudent.kelas
-      }]);
-
-      if (!error) {
-        alert("🎉 Jawaban berhasil terkirim!");
-        loadSoalSiswa();
-      } else {
-        alert("Gagal mengirim jawaban: " + error.message);
-        btn.innerText = "Kirim Jawaban";
-        btn.disabled = false;
-      }
-    }
-  </script>
-</body>
-</html>
+// --- FUNGSI LOGOUT SISWA ---
+function logoutSiswa() {
+  localStorage.removeItem('student_session');
+  currentStudent = null;
+  showScreen('screenMainLogin');
+}
